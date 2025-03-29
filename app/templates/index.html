@@ -1,0 +1,158 @@
+<!-- app/templates/index.html -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Генератор Челленджей Automation</title>
+    <style>
+        body { font-family: sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; color: #333; }
+        .container { max-width: 800px; margin: 30px auto; background-color: #fff; padding: 20px 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #333; text-align: center; margin-bottom: 30px; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; }
+        select, button { width: 100%; padding: 10px 12px; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; /* Учитывает padding в ширине */ font-size: 1rem; }
+        button { background-color: #007bff; color: white; border: none; cursor: pointer; transition: background-color 0.2s ease; }
+        button:hover { background-color: #0056b3; }
+        .challenge-result { margin-top: 30px; padding: 20px; border: 1px solid #e0e0e0; background-color: #f9f9f9; border-radius: 4px; }
+        .challenge-result h2 { margin-top: 0; margin-bottom: 15px; color: #0056b3; }
+        .result-item { margin-bottom: 10px; }
+        .result-item strong { display: inline-block; min-width: 150px; /* Выравнивание ключей */ color: #555; }
+        /* Стили для flash-сообщений */
+        .flashes { list-style: none; padding: 0; margin: 0 0 20px 0; }
+        .flashes li { padding: 10px 15px; margin-bottom: 10px; border-radius: 4px; border: 1px solid transparent; }
+        .flashes .error { background-color: #f8d7da; color: #721c24; border-color: #f5c6cb; }
+        .flashes .warning { background-color: #fff3cd; color: #856404; border-color: #ffeeba; }
+        .flashes .info { background-color: #d1ecf1; color: #0c5460; border-color: #bee5eb; }
+        .flashes .success { background-color: #d4edda; color: #155724; border-color: #c3e6cb; }
+        /* Скрытие/показ кастомных настроек */
+        #custom_settings { border: 1px dashed #ccc; padding: 15px; margin-top: 10px; border-radius: 4px; background-color: #fafafa;}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Генератор Челленджей для Automation</h1>
+
+        <!-- Отображение flash-сообщений -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <ul class="flashes">
+                {% for category, message in messages %}
+                    <li class="{{ category }}">{{ message }}</li>
+                {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+
+        <form action="{{ url_for('main.generate_challenge') }}" method="post">
+            <label for="template_select">Выберите шаблон:</label>
+            <select name="template_id" id="template_select">
+                <option value="custom" {% if selected_template_id == 'custom' %}selected{% endif %}>-- Кастомный --</option>
+                {% if templates %}
+                    {% for template in templates %}
+                    <option value="{{ template.id }}" {% if selected_template_id == template.id|string %}selected{% endif %}>{{ template.name }}</option>
+                    {% endfor %}
+                {% else %}
+                    <option value="" disabled>Шаблоны не найдены</option>
+                {% endif %}
+            </select>
+
+            <!-- Сюда позже добавим поля для кастомной настройки -->
+            <div id="custom_settings" style="display: none;">
+                 <p><strong>Настройка Кастомного Челленджа:</strong></p>
+                 <p><i>(Здесь появятся опции для выбора категорий и правил)</i></p>
+                 <!-- Пример поля (позже будет генерироваться динамически) -->
+                 <!--
+                 <div>
+                    <input type="checkbox" id="cat_bodies" name="custom_cat_bodies">
+                    <label for="cat_bodies">Кузова (Bodies)</label>
+                    <select name="custom_rule_bodies">
+                        <option value="random_from_category">Случайно из всех</option>
+                        <option value="fixed">Фиксированное значение</option>
+                    </select>
+                    <input type="number" name="custom_count_bodies" value="1" min="1">
+                 </div>
+                 -->
+            </div>
+
+            <button type="submit">Сгенерировать Челлендж!</button>
+        </form>
+
+        <!-- Отображение результата -->
+        {% if result %}
+        <div class="challenge-result">
+            <h2>Результат Генерации:</h2>
+            {% for category, values in result.items() %}
+                <div class="result-item">
+                    <strong>{{ category | replace('_', ' ') | title }}:</strong> <!-- Форматируем имя категории -->
+                    <span>{{ values | join(', ') }}</span> <!-- Выводим значения через запятую -->
+                </div>
+            {% else %}
+                <p>Результат генерации пуст.</p>
+            {% endfor %}
+            <hr>
+            <button onclick="copyResultToClipboard()" style="width: auto; background-color: #6c757d; margin-top: 10px;">Копировать результат</button>
+            <pre id="raw_result" style="display: none;">{{ result | tojson(indent=2) }}</pre> <!-- Скрытое поле для копирования -->
+
+        </div>
+        {% endif %}
+
+    </div> <!-- /container -->
+
+    <script>
+        const templateSelect = document.getElementById('template_select');
+        const customSettings = document.getElementById('custom_settings');
+
+        function toggleCustomSettings() {
+            if (templateSelect.value === 'custom') {
+                customSettings.style.display = 'block';
+            } else {
+                customSettings.style.display = 'none';
+            }
+        }
+
+        templateSelect.addEventListener('change', toggleCustomSettings);
+
+        // Инициализация при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            // Вызываем при загрузке, чтобы правильно показать/скрыть блок кастомных
+            toggleCustomSettings();
+        });
+
+        // Функция копирования результата
+        function copyResultToClipboard() {
+            const resultArea = document.querySelector('.challenge-result');
+            if (!resultArea) return;
+
+            let textToCopy = "Сгенерированный Челлендж:\n";
+            const resultItems = resultArea.querySelectorAll('.result-item');
+
+            resultItems.forEach(item => {
+                const key = item.querySelector('strong').innerText;
+                const value = item.querySelector('span').innerText;
+                textToCopy += `${key} ${value}\n`;
+            });
+
+            // Используем Clipboard API (современный подход)
+            navigator.clipboard.writeText(textToCopy.trim()).then(function() {
+                alert('Результат скопирован в буфер обмена!');
+            }, function(err) {
+                alert('Не удалось скопировать результат. Попробуйте вручную.');
+                console.error('Ошибка копирования: ', err);
+                // Фоллбэк для старых браузеров (менее надежный)
+                // const rawResult = document.getElementById('raw_result');
+                // rawResult.style.display = 'block'; // Показать временно
+                // rawResult.select();
+                // try {
+                //     document.execCommand('copy');
+                //     alert('Результат скопирован (fallback)!');
+                // } catch (errFallback) {
+                //     alert('Ошибка копирования (fallback).');
+                // }
+                // rawResult.style.display = 'none'; // Скрыть обратно
+            });
+        }
+
+    </script>
+
+</body>
+</html>

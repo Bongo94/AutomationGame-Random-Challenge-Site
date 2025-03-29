@@ -57,21 +57,64 @@
             </select>
 
             <!-- Сюда позже добавим поля для кастомной настройки -->
+            <!-- Поля для кастомной настройки -->
             <div id="custom_settings" style="display: none;">
-                 <p><strong>Настройка Кастомного Челленджа:</strong></p>
-                 <p><i>(Здесь появятся опции для выбора категорий и правил)</i></p>
-                 <!-- Пример поля (позже будет генерироваться динамически) -->
-                 <!--
-                 <div>
-                    <input type="checkbox" id="cat_bodies" name="custom_cat_bodies">
-                    <label for="cat_bodies">Кузова (Bodies)</label>
-                    <select name="custom_rule_bodies">
-                        <option value="random_from_category">Случайно из всех</option>
-                        <option value="fixed">Фиксированное значение</option>
-                    </select>
-                    <input type="number" name="custom_count_bodies" value="1" min="1">
-                 </div>
-                 -->
+                 <h4>Настройка Кастомного Челленджа:</h4>
+                 <p><small>Отметьте категории, которые нужно включить в генерацию, и настройте правила.</small></p>
+
+                 {% if all_categories %}
+                    {% for category in all_categories %}
+                    <div class="custom-category-block" style="margin-bottom: 15px; padding: 10px; border: 1px solid #eee; border-radius: 4px;">
+                        <input type="checkbox" id="include_cat_{{ category.id }}" name="include_category" value="{{ category.name }}" style="width: auto; margin-right: 5px;">
+                        <label for="include_cat_{{ category.id }}" style="display: inline; font-weight: bold;">{{ category.name | replace('_', ' ') | title }}</label>
+
+                        <div class="custom-rules" style="margin-left: 25px; margin-top: 5px;">
+                            <label for="rule_{{ category.id }}" style="font-size: 0.9em;">Правило:</label>
+                            <select name="rule_{{ category.name }}" id="rule_{{ category.id }}" style="width: auto; font-size: 0.9em; padding: 5px;">
+                                <option value="random_from_category">Случайно из всех</option>
+                                <option value="random_from_list">Случайно из списка</option>
+                                <option value="range">Диапазон (числа)</option>
+                                <option value="fixed">Фиксированное значение</option>
+                                <!-- Добавить другие правила, если они реализованы в генераторе -->
+                            </select>
+
+                            <label for="count_{{ category.id }}" style="font-size: 0.9em; margin-left: 10px;">Кол-во:</label>
+                            <input type="number" name="count_{{ category.name }}" id="count_{{ category.id }}" value="1" min="1" max="10" style="width: 60px; font-size: 0.9em; padding: 5px;">
+
+                            <!-- Поля для специфичных правил (будут показаны/скрыты JS) -->
+                            <div class="rule-options-{{ category.id }}" style="margin-top: 5px;">
+                                <div class="option-fixed" style="display: none;">
+                                    <label for="fixed_value_{{ category.id }}" style="font-size: 0.9em;">Значение:</label>
+                                    <input type="text" name="fixed_value_{{ category.name }}" id="fixed_value_{{ category.id }}" placeholder="Введите значение" style="width: auto; font-size: 0.9em; padding: 5px;">
+                                    <!-- Или select, если хотим выбирать из существующих -->
+                                    <select name="fixed_value_select_{{ category.name }}" style="display: none; width: auto; font-size: 0.9em; padding: 5px;">
+                                        {% for val in category.values %}
+                                            <option value="{{ val.value_str }}">{{ val.value_str }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="option-random_from_list" style="display: none;">
+                                     <label style="font-size: 0.9em;">Выберите значения:</label><br>
+                                     {% for val in category.values %}
+                                        <input type="checkbox" id="list_val_{{ category.id }}_{{ val.id }}" name="allowed_values_{{ category.name }}" value="{{ val.value_str }}" style="width: auto; margin-right: 3px;">
+                                        <label for="list_val_{{ category.id }}_{{ val.id }}" style="display: inline; font-weight: normal; font-size: 0.9em; margin-right: 10px;">{{ val.value_str }}</label>
+                                     {% endfor %}
+                                </div>
+                                <div class="option-range" style="display: none;">
+                                    <label for="range_min_{{ category.id }}" style="font-size: 0.9em;">Мин:</label>
+                                    <input type="number" name="range_min_{{ category.name }}" id="range_min_{{ category.id }}" style="width: 70px; font-size: 0.9em; padding: 5px;">
+                                    <label for="range_max_{{ category.id }}" style="font-size: 0.9em; margin-left: 5px;">Макс:</label>
+                                    <input type="number" name="range_max_{{ category.name }}" id="range_max_{{ category.id }}" style="width: 70px; font-size: 0.9em; padding: 5px;">
+                                    <label for="range_step_{{ category.id }}" style="font-size: 0.9em; margin-left: 5px;">Шаг:</label>
+                                    <input type="number" name="range_step_{{ category.name }}" id="range_step_{{ category.id }}" value="1" min="1" style="width: 60px; font-size: 0.9em; padding: 5px;">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                 {% else %}
+                    <p>Нет доступных категорий для настройки.</p>
+                 {% endif %}
             </div>
 
             <button type="submit">Сгенерировать Челлендж!</button>
@@ -150,6 +193,101 @@
                 // }
                 // rawResult.style.display = 'none'; // Скрыть обратно
             });
+
+            // --- JS для управления полями кастомных правил ---
+        const customSettingsDiv = document.getElementById('custom_settings');
+
+        // Функция для показа/скрытия опций правила для ОДНОЙ категории
+        function updateRuleOptions(categoryBlock) {
+            const ruleSelect = categoryBlock.querySelector('select[name^="rule_"]');
+            const selectedRule = ruleSelect.value;
+            const ruleOptionsDiv = categoryBlock.querySelector('.rule-options-' + ruleSelect.id.split('_').pop()); // Находим div с опциями для этой категории
+
+            // Сначала скрываем все опции для данной категории
+            ruleOptionsDiv.querySelectorAll('.option-fixed, .option-random_from_list, .option-range').forEach(div => {
+                div.style.display = 'none';
+            });
+            // Скрываем/показываем поле count в зависимости от правила (не нужно для fixed и range?)
+            const countInput = categoryBlock.querySelector('input[name^="count_"]');
+             if (countInput) {
+                countInput.style.display = (selectedRule === 'fixed' || selectedRule === 'range') ? 'none' : 'inline-block';
+                categoryBlock.querySelector('label[for="'+ countInput.id +'"]').style.display = (selectedRule === 'fixed' || selectedRule === 'range') ? 'none' : 'inline-block';
+             }
+
+
+            // Показываем нужные опции
+            if (selectedRule === 'fixed') {
+                const fixedOptionDiv = ruleOptionsDiv.querySelector('.option-fixed');
+                if (fixedOptionDiv) {
+                    fixedOptionDiv.style.display = 'block';
+                    // Решаем, показывать input или select для фиксированного значения
+                    const textInput = fixedOptionDiv.querySelector('input[type="text"]');
+                    const selectInput = fixedOptionDiv.querySelector('select');
+                    const categoryValuesExist = selectInput && selectInput.options.length > 0;
+
+                    if (categoryValuesExist) { // Если есть значения в БД, показываем select
+                        textInput.style.display = 'none';
+                        selectInput.style.display = 'inline-block';
+                         // Используем select для передачи значения
+                        textInput.name = ''; // Убираем имя у текстового поля
+                        selectInput.name = `fixed_value_${ruleSelect.name.split('_')[1]}`; // Устанавливаем имя селекту
+                    } else { // Иначе показываем текстовое поле
+                        textInput.style.display = 'inline-block';
+                        selectInput.style.display = 'none';
+                         // Используем текстовое поле для передачи значения
+                        textInput.name = `fixed_value_${ruleSelect.name.split('_')[1]}`; // Устанавливаем имя текстовому полю
+                        selectInput.name = ''; // Убираем имя у селекта
+                    }
+                }
+            } else if (selectedRule === 'random_from_list') {
+                const listOptionDiv = ruleOptionsDiv.querySelector('.option-random_from_list');
+                if (listOptionDiv) listOptionDiv.style.display = 'block';
+            } else if (selectedRule === 'range') {
+                 const rangeOptionDiv = ruleOptionsDiv.querySelector('.option-range');
+                if (rangeOptionDiv) rangeOptionDiv.style.display = 'block';
+            }
+             // Для 'random_from_category' ничего дополнительно показывать не нужно
+        }
+
+        // Назначаем обработчик на ИЗМЕНЕНИЕ ПРАВИЛА для всех категорий
+        customSettingsDiv.querySelectorAll('select[name^="rule_"]').forEach(select => {
+            select.addEventListener('change', function() {
+                // Находим родительский блок категории
+                const categoryBlock = this.closest('.custom-category-block');
+                updateRuleOptions(categoryBlock);
+            });
+        });
+
+        // Назначаем обработчик на ВКЛЮЧЕНИЕ/ВЫКЛЮЧЕНИЕ КАТЕГОРИИ
+        customSettingsDiv.querySelectorAll('input[name="include_category"]').forEach(checkbox => {
+             checkbox.addEventListener('change', function() {
+                 const rulesDiv = this.closest('.custom-category-block').querySelector('.custom-rules');
+                 rulesDiv.style.display = this.checked ? 'block' : 'none';
+                 if(this.checked) {
+                     // При включении, обновим опции правил на всякий случай
+                     updateRuleOptions(this.closest('.custom-category-block'));
+                 }
+             });
+             // Инициализация при загрузке страницы
+             const rulesDiv = checkbox.closest('.custom-category-block').querySelector('.custom-rules');
+             rulesDiv.style.display = checkbox.checked ? 'block' : 'none';
+              if(checkbox.checked) {
+                 updateRuleOptions(checkbox.closest('.custom-category-block'));
+              }
+        });
+
+        // Инициализация состояния всех полей при загрузке страницы (если форма отправлялась)
+        document.addEventListener('DOMContentLoaded', function() {
+            // Переинициализируем состояние для кастомных полей
+             customSettingsDiv.querySelectorAll('.custom-category-block').forEach(block => {
+                const checkbox = block.querySelector('input[name="include_category"]');
+                 const rulesDiv = block.querySelector('.custom-rules');
+                 rulesDiv.style.display = checkbox.checked ? 'block' : 'none'; // Скрыть/показать блок правил
+                 if(checkbox.checked) {
+                     updateRuleOptions(block); // Обновить видимость полей для включенных категорий
+                 }
+            });
+        });
         }
 
     </script>

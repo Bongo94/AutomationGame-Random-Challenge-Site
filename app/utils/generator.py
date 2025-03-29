@@ -122,7 +122,7 @@ class ChallengeGenerator:
         """Выбирает count случайных значений из всех значений категории."""
         # Получаем все значения как строки
         # Используем .with_entities(Value.value_str) для оптимизации - получаем только строки
-        all_values = [v.value_str for v in category.values.all()]
+        all_values = [v.value_str for v in category.values]
         if not all_values:
             raise ValueError(f"Нет доступных значений для категории '{category.name}'.")
 
@@ -165,7 +165,7 @@ class ChallengeGenerator:
     def _get_filtered_random(self, category, allowed_values_str, count):
         """Выбирает случайные значения из категории, но только те, что есть в списке allowed_values_str."""
         # Получаем ID значений, соответствующих строкам из allowed_values_str в данной категории
-        allowed_db_values = category.values.filter(Value.value_str.in_(allowed_values_str)).all()
+        allowed_db_values = [v for v in category.values if v.value_str in allowed_values_str]
         allowed_values = [v.value_str for v in allowed_db_values]
 
         if not allowed_values:

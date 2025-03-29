@@ -7,7 +7,7 @@ class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), unique=True, nullable=False)
     # Связь с возможными значениями
-    values = db.relationship('Value', backref='category', lazy='dynamic', cascade="all, delete-orphan")
+    values = db.relationship('Value', backref='category', lazy='joined', cascade="all, delete-orphan") # Изменили lazy='dynamic' на lazy='joined' (или просто убрать lazy, 'select' по умолчанию)
     # Добавим описание категории, может пригодиться
     description = db.Column(db.String(200))
 

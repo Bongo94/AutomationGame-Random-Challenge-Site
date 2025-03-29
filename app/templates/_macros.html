@@ -1,0 +1,102 @@
+{# app/templates/_macros.html #}
+{% macro render_category_settings(category, form_data) %}
+<div class="custom-category-block">
+    {# Чекбокс включения категории #}
+    <div class="form-check mb-2">
+        <input class="form-check-input" type="checkbox" id="include_cat_{{ category.id }}" name="include_category" value="{{ category.name }}"
+               {% if category.name in form_data.getlist('include_category') %}checked{% endif %}>
+        <label class="form-check-label fw-bold" for="include_cat_{{ category.id }}">
+            {{ category.name | replace('_', ' ') | title }}
+        </label>
+    </div>
+
+    {# Блок с правилами (управляется JS) #}
+    <div class="custom-rules" style="display: {% if category.name in form_data.getlist('include_category') %}block{% else %}none{% endif %};">
+         {# Выбор правила и количества #}
+         <div class="row align-items-center mb-2">
+            <div class="col-auto">
+                <label for="rule_{{ category.id }}" class="col-form-label col-form-label-sm">Правило:</label>
+            </div>
+            <div class="col-auto">
+                <select name="rule_{{ category.name }}" id="rule_{{ category.id }}" class="form-select form-select-sm">
+                    <option value="random_from_category" {% if form_data.get('rule_' + category.name) == 'random_from_category' or not form_data.get('rule_' + category.name) %}selected{% endif %}>Случайно из всех</option>
+                    <option value="random_from_list" {% if form_data.get('rule_' + category.name) == 'random_from_list' %}selected{% endif %}>Случайно из списка</option>
+                    <option value="range" {% if form_data.get('rule_' + category.name) == 'range' %}selected{% endif %}>Диапазон (числа)</option>
+                    <option value="fixed" {% if form_data.get('rule_' + category.name) == 'fixed' %}selected{% endif %}>Фиксированное значение</option>
+                </select>
+            </div>
+            <div class="col-auto rule-count-field">
+                <label for="count_{{ category.id }}" class="col-form-label col-form-label-sm ms-2">Кол-во:</label>
+            </div>
+             <div class="col-auto rule-count-field">
+                <input type="number" name="count_{{ category.name }}" id="count_{{ category.id }}"
+                       value="{{ form_data.get('count_' + category.name, '1') }}" min="1" max="10" class="form-control form-control-sm" style="width: 70px;">
+            </div>
+        </div>
+
+        {# Поля для специфичных правил #}
+        <div class="rule-options rule-options-{{ category.id }}">
+            {# Опция Fixed #}
+            <div class="option-fixed border-top pt-2" style="display: none;">
+                 <div class="row align-items-center">
+                     <div class="col-auto">
+                        <label for="fixed_value_{{ category.id }}" class="col-form-label col-form-label-sm">Значение:</label>
+                     </div>
+                     <div class="col-auto">
+                        <input type="text" name="fixed_value_{{ category.name }}" id="fixed_value_{{ category.id }}"
+                               value="{{ form_data.get('fixed_value_' + category.name, '') }}"
+                               placeholder="Введите значение" class="form-control form-control-sm fixed-input-text">
+                        <select name="fixed_value_select_{{ category.name }}" class="form-select form-select-sm fixed-input-select" style="display: none;">
+                            <option value="" {% if not form_data.get('fixed_value_select_' + category.name) %}selected{% endif %}>-- Выберите --</option>
+                            {% for val in category.values | sort(attribute='value_str') %} {# Добавил сортировку для порядка #}
+                                <option value="{{ val.value_str }}" {% if form_data.get('fixed_value_select_' + category.name) == val.value_str %}selected{% endif %}>{{ val.value_str }}</option>
+                            {% endfor %}
+                        </select>
+                     </div>
+                 </div>
+            </div>
+            {# Опция Random from List #}
+            <div class="option-random_from_list border-top pt-2" style="display: none;">
+                 <label class="form-label form-label-sm">Выберите значения:</label><br>
+                 {% for val in category.values | sort(attribute='value_str') %} {# Добавил сортировку #}
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" id="list_val_{{ category.id }}_{{ val.id }}" name="allowed_values_{{ category.name }}" value="{{ val.value_str }}"
+                               {% if val.value_str in form_data.getlist('allowed_values_' + category.name) %}checked{% endif %}>
+                        <label class="form-check-label" for="list_val_{{ category.id }}_{{ val.id }}">{{ val.value_str }}</label>
+                    </div>
+                 {% else %}
+                     <span class="text-muted fst-italic"><small>Нет доступных значений в этой категории.</small></span>
+                 {% endfor %}
+            </div>
+            {# Опция Range #}
+            <div class="option-range border-top pt-2" style="display: none;">
+                <div class="row g-2 align-items-center">
+                    <div class="col-auto">
+                        <label for="range_min_{{ category.id }}" class="col-form-label col-form-label-sm">Мин:</label>
+                    </div>
+                    <div class="col-auto">
+                        <input type="number" name="range_min_{{ category.name }}" id="range_min_{{ category.id }}"
+                               value="{{ form_data.get('range_min_' + category.name, '') }}"
+                               class="form-control form-control-sm" style="width: 80px;">
+                    </div>
+                     <div class="col-auto">
+                        <label for="range_max_{{ category.id }}" class="col-form-label col-form-label-sm">Макс:</label>
+                     </div>
+                    <div class="col-auto">
+                        <input type="number" name="range_max_{{ category.name }}" id="range_max_{{ category.id }}"
+                               value="{{ form_data.get('range_max_' + category.name, '') }}"
+                               class="form-control form-control-sm" style="width: 80px;">
+                    </div>
+                     <div class="col-auto">
+                        <label for="range_step_{{ category.id }}" class="col-form-label col-form-label-sm">Шаг:</label>
+                     </div>
+                    <div class="col-auto">
+                        <input type="number" name="range_step_{{ category.name }}" id="range_step_{{ category.id }}"
+                               value="{{ form_data.get('range_step_' + category.name, '1') }}" min="1" class="form-control form-control-sm" style="width: 70px;">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endmacro %}

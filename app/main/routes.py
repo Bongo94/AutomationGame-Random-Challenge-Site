@@ -1,6 +1,7 @@
 # app/main/routes.py
 from flask import Blueprint, render_template, current_app, request, jsonify, flash  # Добавили request и jsonify
 from werkzeug.datastructures import MultiDict
+from datetime import datetime
 
 from ..models import Template, Category, Value # Убедись, что Category и Value импортированы
 from .. import db
@@ -94,7 +95,8 @@ def index():
                            result=None,
                            selected_template_id=None,
                            # --- Change this line ---
-                           form_data=MultiDict()) # Pass an empty MultiDict instead of {}
+                           form_data=MultiDict(),
+                           now=datetime.utcnow) # Pass an empty MultiDict instead of {}
                            # --- End Change ---
 
 # --- Маршрут для генерации ---
@@ -176,4 +178,5 @@ def generate_challenge():
                            all_categories=all_categories,
                            result=result_data,
                            selected_template_id=selected_template_id,
-                           form_data=form_data) # Передаем исходные данные формы обратно
+                           form_data=form_data,
+                           now=datetime.utcnow) # Передаем исходные данные формы обратно

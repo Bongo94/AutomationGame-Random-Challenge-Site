@@ -1,229 +1,64 @@
-<!-- app/templates/index.html -->
-<!DOCTYPE html>
-<html lang="ru" data-bs-theme="light"> <!-- Можно задать тему light/dark -->
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Генератор Челленджей Automation</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-    <!-- Можно добавить иконки Bootstrap -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <style>
-        /* Небольшие кастомные доработки, если нужны */
-        .custom-category-block .form-select,
-        .custom-category-block .form-control {
-             font-size: 0.875rem; /* Уменьшим шрифт в кастомных полях */
-             padding: 0.375rem 0.75rem;
-        }
-        .custom-category-block .form-check-input {
-             width: 1em; height: 1em; /* Чуть уменьшим чекбоксы */
-        }
-         .custom-category-block .form-check-label {
-             font-size: 0.875rem;
-             margin-left: 0.2rem;
-         }
-        .result-item strong { min-width: 140px; display: inline-block;} /* Для выравнивания ключей результата */
+{# app/templates/index.html #}
+{% extends "base.html" %}
+{% from "_macros.html" import render_category_settings %} {# Импорт макроса остается #}
 
-        /* Стилизация контейнера кастомных настроек */
-        #custom_settings {
-            border: 1px dashed #adb5bd;
-            padding: 1.5rem;
-            margin-top: 1.5rem;
-            border-radius: 0.375rem; /* Используем стандартный радиус Bootstrap */
-            background-color: #f8f9fa; /* Светлый фон */
-        }
-        #custom_settings h4 { margin-bottom: 1rem; }
-        .custom-category-block {
-            padding: 1rem;
-            border: 1px solid #dee2e6; /* Стандартная граница Bootstrap */
-            border-radius: 0.375rem;
-            margin-bottom: 1rem;
-            background-color: #fff; /* Белый фон для блока категории */
-        }
-        .custom-category-block > .form-check { margin-bottom: 0.5rem;} /* Отступ для главного чекбокса категории */
+{% block title %}Генератор Челленджей Automation{% endblock %}
 
-        .custom-rules { margin-left: 1.7rem; } /* Отступ для блока правил */
-        .custom-rules .row { margin-bottom: 0.5rem; } /* Отступы между строками правил */
-        .custom-rules label { margin-bottom: 0.2rem; } /* Уменьшим отступ у label */
+{% block content %}
+    <h1 class="mb-4 text-center">Генератор Челленджей для Automation</h1>
 
-        .option-random_from_list .form-check { display: inline-block; margin-right: 0.8rem;} /* Чекбоксы списка в строку */
-
-        .rule-options { margin-top: 0.75rem;} /* Отступ для доп. полей правил */
-
-    </style>
-</head>
-<body>
-    <div class="container mt-4 mb-5"> <!-- container + отступы сверху/снизу -->
-        <h1 class="mb-4 text-center">Генератор Челленджей для Automation</h1> <!-- mb-4 = margin-bottom -->
-
-        <!-- Отображение flash-сообщений -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    {# Используем стандартные alert'ы Bootstrap #}
-                    <div class="alert alert-{{ 'danger' if category == 'error' else ('warning' if category == 'warning' else 'info') }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
+    {# Форма генерации #}
+    <form action="{{ url_for('main.generate_challenge') }}" method="post" class="mb-4 p-4 border rounded bg-light">
+        {# Выпадающий список шаблонов #}
+        <div class="mb-3">
+            <label for="template_select" class="form-label">Выберите шаблон:</label>
+            <select name="template_id" id="template_select" class="form-select">
+                <option value="custom" {% if selected_template_id == 'custom' %}selected{% endif %}>-- Кастомный --</option>
+                {% for template in templates %}
+                <option value="{{ template.id }}" {% if selected_template_id == template.id|string %}selected{% endif %}>{{ template.name }}</option>
+                {% else %}
+                <option value="" disabled>Шаблоны не найдены</option>
                 {% endfor %}
-            {% endif %}
-        {% endwith %}
-
-        <form action="{{ url_for('main.generate_challenge') }}" method="post" class="mb-4 p-4 border rounded bg-light"> <!-- Добавили классы к форме -->
-            <div class="mb-3"> <!-- Отступ для элемента формы -->
-                <label for="template_select" class="form-label">Выберите шаблон:</label>
-                <select name="template_id" id="template_select" class="form-select"> <!-- Класс form-select -->
-                    <option value="custom" {% if selected_template_id == 'custom' %}selected{% endif %}>-- Кастомный --</option>
-                    {% if templates %}
-                        {% for template in templates %}
-                        <option value="{{ template.id }}" {% if selected_template_id == template.id|string %}selected{% endif %}>{{ template.name }}</option>
-                        {% endfor %}
-                    {% else %}
-                        <option value="" disabled>Шаблоны не найдены</option>
-                    {% endif %}
-                </select>
-            </div>
-
-            <!-- Поля для кастомной настройки -->
-            <div id="custom_settings" style="display: none;"> <!-- Стили оставим пока здесь, но лучше вынести в CSS -->
-                 <h4>Настройка Кастомного Челленджа:</h4>
-                 <p class="text-muted"><small>Отметьте категории, которые нужно включить в генерацию, и настройте правила.</small></p> <!-- text-muted для подсказки -->
-
-                 {% if all_categories %}
-                    {% for category in all_categories %}
-                    <div class="custom-category-block">
-                        {# --- Чекбокс включения категории --- Используем form-check #}
-                        <div class="form-check mb-2">
-                            <input class="form-check-input" type="checkbox" id="include_cat_{{ category.id }}" name="include_category" value="{{ category.name }}"
-                                   {% if category.name in form_data.getlist('include_category') %}checked{% endif %}>
-                            <label class="form-check-label fw-bold" for="include_cat_{{ category.id }}"> {# fw-bold для жирности #}
-                                {{ category.name | replace('_', ' ') | title }}
-                            </label>
-                        </div>
-
-                        <div class="custom-rules" style="display: {% if category.name in form_data.getlist('include_category') %}block{% else %}none{% endif %};"> {# Управляем видимостью блока правил через JS/стили #}
-                             <div class="row align-items-center mb-2"> {# Используем сетку Bootstrap для выравнивания #}
-                                <div class="col-auto">
-                                    <label for="rule_{{ category.id }}" class="col-form-label col-form-label-sm">Правило:</label>
-                                </div>
-                                <div class="col-auto">
-                                    <select name="rule_{{ category.name }}" id="rule_{{ category.id }}" class="form-select form-select-sm"> {# Уменьшенный select #}
-                                        <option value="random_from_category" {% if form_data.get('rule_' + category.name) == 'random_from_category' or not form_data.get('rule_' + category.name) %}selected{% endif %}>Случайно из всех</option>
-                                        <option value="random_from_list" {% if form_data.get('rule_' + category.name) == 'random_from_list' %}selected{% endif %}>Случайно из списка</option>
-                                        <option value="range" {% if form_data.get('rule_' + category.name) == 'range' %}selected{% endif %}>Диапазон (числа)</option>
-                                        <option value="fixed" {% if form_data.get('rule_' + category.name) == 'fixed' %}selected{% endif %}>Фиксированное значение</option>
-                                    </select>
-                                </div>
-                                <div class="col-auto rule-count-field"> {# Добавляем класс для управления видимостью #}
-                                    <label for="count_{{ category.id }}" class="col-form-label col-form-label-sm ms-2">Кол-во:</label> {# ms-2 = margin-start #}
-                                </div>
-                                 <div class="col-auto rule-count-field">
-                                    <input type="number" name="count_{{ category.name }}" id="count_{{ category.id }}"
-                                           value="{{ form_data.get('count_' + category.name, '1') }}" min="1" max="10" class="form-control form-control-sm" style="width: 70px;"> {# Уменьшенный input #}
-                                </div>
-                            </div>
-
-
-                            <!-- Поля для специфичных правил -->
-                            <div class="rule-options rule-options-{{ category.id }}">
-                                <div class="option-fixed border-top pt-2" style="display: none;"> {# pt-2 = padding-top #}
-                                     <div class="row align-items-center">
-                                         <div class="col-auto">
-                                            <label for="fixed_value_{{ category.id }}" class="col-form-label col-form-label-sm">Значение:</label>
-                                         </div>
-                                         <div class="col-auto">
-                                            {# Input text для фикс. значения #}
-                                            <input type="text" name="fixed_value_{{ category.name }}" id="fixed_value_{{ category.id }}"
-                                                   value="{{ form_data.get('fixed_value_' + category.name, '') }}"
-                                                   placeholder="Введите значение" class="form-control form-control-sm fixed-input-text">
-                                           {# Select для фикс. значения #}
-                                            <select name="fixed_value_select_{{ category.name }}" class="form-select form-select-sm fixed-input-select" style="display: none;">
-                                                <option value="" {% if not form_data.get('fixed_value_select_' + category.name) %}selected{% endif %}>-- Выберите --</option>
-                                                {% for val in category.values %}
-                                                    <option value="{{ val.value_str }}" {% if form_data.get('fixed_value_select_' + category.name) == val.value_str %}selected{% endif %}>{{ val.value_str }}</option>
-                                                {% endfor %}
-                                            </select>
-                                         </div>
-                                     </div>
-                                </div>
-                                <div class="option-random_from_list border-top pt-2" style="display: none;">
-                                     <label class="form-label form-label-sm">Выберите значения:</label><br>
-                                     {# Используем form-check-inline для чекбоксов в строку #}
-                                     {% for val in category.values %}
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="checkbox" id="list_val_{{ category.id }}_{{ val.id }}" name="allowed_values_{{ category.name }}" value="{{ val.value_str }}"
-                                                   {% if val.value_str in form_data.getlist('allowed_values_' + category.name) %}checked{% endif %}>
-                                            <label class="form-check-label" for="list_val_{{ category.id }}_{{ val.id }}">{{ val.value_str }}</label>
-                                        </div>
-                                     {% endfor %}
-                                </div>
-                                <div class="option-range border-top pt-2" style="display: none;">
-                                    <div class="row g-2 align-items-center"> {# g-2 = gutters (отступы между колонками) #}
-                                        <div class="col-auto">
-                                            <label for="range_min_{{ category.id }}" class="col-form-label col-form-label-sm">Мин:</label>
-                                        </div>
-                                        <div class="col-auto">
-                                            <input type="number" name="range_min_{{ category.name }}" id="range_min_{{ category.id }}"
-                                                   value="{{ form_data.get('range_min_' + category.name, '') }}"
-                                                   class="form-control form-control-sm" style="width: 80px;">
-                                        </div>
-                                         <div class="col-auto">
-                                            <label for="range_max_{{ category.id }}" class="col-form-label col-form-label-sm">Макс:</label>
-                                         </div>
-                                        <div class="col-auto">
-                                            <input type="number" name="range_max_{{ category.name }}" id="range_max_{{ category.id }}"
-                                                   value="{{ form_data.get('range_max_' + category.name, '') }}"
-                                                   class="form-control form-control-sm" style="width: 80px;">
-                                        </div>
-                                         <div class="col-auto">
-                                            <label for="range_step_{{ category.id }}" class="col-form-label col-form-label-sm">Шаг:</label>
-                                         </div>
-                                        <div class="col-auto">
-                                            <input type="number" name="range_step_{{ category.name }}" id="range_step_{{ category.id }}"
-                                                   value="{{ form_data.get('range_step_' + category.name, '1') }}" min="1" class="form-control form-control-sm" style="width: 70px;">
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                 {% else %}
-                    <p class="text-muted">Нет доступных категорий для настройки.</p>
-                 {% endif %}
-            </div>
-
-            <button type="submit" class="btn btn-primary w-100 mt-3"> <i class="bi bi-dice-5"></i> Сгенерировать Челлендж!</button> <!-- btn, btn-primary, w-100, иконка -->
-        </form>
-
-        <!-- Отображение результата -->
-        {% if result %}
-        <div class="challenge-result border rounded p-4 bg-white"> <!-- Добавили классы -->
-            <h2 class="mb-3">Результат Генерации:</h2>
-            {% for category, values in result.items() %}
-                <div class="result-item mb-2">
-                    <strong>{{ category | replace('_', ' ') | title }}:</strong>
-                    <span>{{ values | join(', ') }}</span>
-                </div>
-            {% else %}
-                <p class="text-muted">Результат генерации пуст.</p>
-            {% endfor %}
-            <hr>
-             {# Стилизуем кнопку копирования #}
-            <button onclick="copyResultToClipboard()" class="btn btn-secondary btn-sm"> <i class="bi bi-clipboard"></i> Копировать результат</button>
-            <pre id="raw_result" style="display: none;">{{ result | tojson(indent=2) }}</pre>
-
+            </select>
         </div>
-        {% endif %}
 
-    </div> <!-- /container -->
+        {# Кастомные настройки (используем макрос) #}
+        <div id="custom_settings" style="display: none;">
+             <h4>Настройка Кастомного Челленджа:</h4>
+             <p class="text-muted"><small>Отметьте категории, которые нужно включить в генерацию, и настройте правила.</small></p>
+             {% if all_categories %}
+                {% for category in all_categories %}
+                    {{ render_category_settings(category, form_data) }}
+                {% endfor %}
+             {% else %}
+                <p class="text-muted">Нет доступных категорий для настройки.</p>
+             {% endif %}
+        </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+        {# Кнопка генерации #}
+        <button type="submit" class="btn btn-primary w-100 mt-3"> <i class="bi bi-dice-5"></i> Сгенерировать Челлендж!</button>
+    </form>
 
-    <!-- Наш кастомный JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-    <!-- Ссылка на ваш JS файл -->
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {# Отображение результата #}
+    {% if result %}
+    <div class="challenge-result border rounded p-4 bg-white">
+        <h2 class="mb-3">Результат Генерации:</h2>
+        {% for category, values in result.items() %}
+            <div class="result-item mb-2">
+                <strong>{{ category | replace('_', ' ') | title }}:</strong>
+                <span>{{ values | join(', ') }}</span>
+            </div>
+        {% else %}
+            <p class="text-muted">Результат генерации пуст.</p>
+        {% endfor %}
+        <hr>
+        <button onclick="copyResultToClipboard()" class="btn btn-secondary btn-sm"> <i class="bi bi-clipboard"></i> Копировать результат</button>
+        <pre id="raw_result" style="display: none;">{{ result | tojson(indent=2) }}</pre>
+    </div>
+    {% endif %}
+{% endblock %}
 
-</body>
-</html>
+{# Если для этой страницы нужны особые скрипты, их можно добавить сюда #}
+{% block scripts %}
+    {# Например: <script>...</script> #}
+{% endblock %}

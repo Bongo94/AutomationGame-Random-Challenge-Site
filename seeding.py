@@ -12,7 +12,7 @@ def populate_initial_data():
     Добавляет новые категории и новые значения к существующим категориям.
     Не удаляет существующие записи.
     """
-    json_path = os.path.join(datadir, "ready_data.json5")
+    json_path = os.path.join(datadir, "ready_data.json")
 
     print(f"Чтение данных для сидинга/обновления из {json_path}...")
     try:

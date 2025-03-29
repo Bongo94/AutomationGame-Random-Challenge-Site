@@ -4,4 +4,4 @@
 # Удалили: from . import routes
 
 # Импортируем Blueprint ИЗ routes.py
-from .routers import main
+from .routes import main

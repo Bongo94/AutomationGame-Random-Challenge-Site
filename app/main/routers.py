@@ -11,9 +11,7 @@ def index():
     """Главная страница."""
     try:
         templates = Template.query.order_by(Template.name).all()
-        # Загружаем все категории с их значениями для кастомных настроек
-        # Используем joinedload для предзагрузки значений, чтобы избежать N+1 запросов в шаблоне
-        all_categories = Category.query.order_by(Category.name).all()
+        all_categories = Category.query.options(db.joinedload(Category.values)).order_by(Category.name).all()
     except Exception as e:
         current_app.logger.error(f"Database error fetching data for index: {e}")
         templates = []
@@ -22,9 +20,10 @@ def index():
 
     return render_template('index.html',
                            templates=templates,
-                           all_categories=all_categories, # Передаем категории в шаблон
+                           all_categories=all_categories,
                            result=None,
-                           selected_template_id=None)
+                           selected_template_id=None,
+                           form_data={}) # Передаем пустой словарь для GET-запроса
 
 # --- Маршрут для генерации ---
 @main.route('/generate', methods=['POST'])
@@ -145,7 +144,6 @@ def generate_challenge():
     # --- Получаем данные для рендеринга шаблона ---
     try:
         templates = Template.query.order_by(Template.name).all()
-        # Категории нужны всегда для кастомного блока
         all_categories = Category.query.options(db.joinedload(Category.values)).order_by(Category.name).all()
     except Exception as e:
         current_app.logger.error(f"Database error fetching data for re-render: {e}")
@@ -157,9 +155,7 @@ def generate_challenge():
     # Передаем все необходимое обратно в шаблон
     return render_template('index.html',
                            templates=templates,
-                           all_categories=all_categories, # Категории нужны снова
+                           all_categories=all_categories,
                            result=result_data,
                            selected_template_id=selected_template_id,
-                           # Важно: передать введенные пользователем данные обратно, чтобы форма сохраняла состояние!
-                           # Это можно сделать, передав request.form в шаблон, но безопаснее передавать только нужные части
-                           form_data=request.form if request.method == 'POST' else {})
+                           form_data=request.form) # <--- Передаем всю форму обратно!

@@ -56,7 +56,7 @@
                 {% endif %}
             </select>
 
-            <!-- Сюда позже добавим поля для кастомной настройки -->
+
             <!-- Поля для кастомной настройки -->
             <div id="custom_settings" style="display: none;">
                  <h4>Настройка Кастомного Челленджа:</h4>
@@ -65,48 +65,68 @@
                  {% if all_categories %}
                     {% for category in all_categories %}
                     <div class="custom-category-block" style="margin-bottom: 15px; padding: 10px; border: 1px solid #eee; border-radius: 4px;">
-                        <input type="checkbox" id="include_cat_{{ category.id }}" name="include_category" value="{{ category.name }}" style="width: auto; margin-right: 5px;">
+                        {# --- Чекбокс включения категории --- #}
+                        <input type="checkbox" id="include_cat_{{ category.id }}" name="include_category" value="{{ category.name }}"
+                               {% if category.name in form_data.getlist('include_category') %}checked{% endif %}
+                               style="width: auto; margin-right: 5px;">
                         <label for="include_cat_{{ category.id }}" style="display: inline; font-weight: bold;">{{ category.name | replace('_', ' ') | title }}</label>
 
                         <div class="custom-rules" style="margin-left: 25px; margin-top: 5px;">
                             <label for="rule_{{ category.id }}" style="font-size: 0.9em;">Правило:</label>
+                            {# --- Select для выбора правила --- #}
                             <select name="rule_{{ category.name }}" id="rule_{{ category.id }}" style="width: auto; font-size: 0.9em; padding: 5px;">
-                                <option value="random_from_category">Случайно из всех</option>
-                                <option value="random_from_list">Случайно из списка</option>
-                                <option value="range">Диапазон (числа)</option>
-                                <option value="fixed">Фиксированное значение</option>
-                                <!-- Добавить другие правила, если они реализованы в генераторе -->
+                                <option value="random_from_category" {% if form_data.get('rule_' + category.name) == 'random_from_category' or not form_data.get('rule_' + category.name) %}selected{% endif %}>Случайно из всех</option> {# Выбираем по умолчанию, если ничего нет #}
+                                <option value="random_from_list" {% if form_data.get('rule_' + category.name) == 'random_from_list' %}selected{% endif %}>Случайно из списка</option>
+                                <option value="range" {% if form_data.get('rule_' + category.name) == 'range' %}selected{% endif %}>Диапазон (числа)</option>
+                                <option value="fixed" {% if form_data.get('rule_' + category.name) == 'fixed' %}selected{% endif %}>Фиксированное значение</option>
                             </select>
 
                             <label for="count_{{ category.id }}" style="font-size: 0.9em; margin-left: 10px;">Кол-во:</label>
-                            <input type="number" name="count_{{ category.name }}" id="count_{{ category.id }}" value="1" min="1" max="10" style="width: 60px; font-size: 0.9em; padding: 5px;">
+                            {# --- Input для количества --- #}
+                            <input type="number" name="count_{{ category.name }}" id="count_{{ category.id }}"
+                                   value="{{ form_data.get('count_' + category.name, '1') }}" min="1" max="10" style="width: 60px; font-size: 0.9em; padding: 5px;">
 
-                            <!-- Поля для специфичных правил (будут показаны/скрыты JS) -->
+                            <!-- Поля для специфичных правил -->
                             <div class="rule-options-{{ category.id }}" style="margin-top: 5px;">
                                 <div class="option-fixed" style="display: none;">
                                     <label for="fixed_value_{{ category.id }}" style="font-size: 0.9em;">Значение:</label>
-                                    <input type="text" name="fixed_value_{{ category.name }}" id="fixed_value_{{ category.id }}" placeholder="Введите значение" style="width: auto; font-size: 0.9em; padding: 5px;">
-                                    <!-- Или select, если хотим выбирать из существующих -->
+                                    {# --- Input text для фикс. значения --- #}
+                                    <input type="text" name="fixed_value_{{ category.name }}" id="fixed_value_{{ category.id }}"
+                                           value="{{ form_data.get('fixed_value_' + category.name, '') }}"
+                                           placeholder="Введите значение" style="width: auto; font-size: 0.9em; padding: 5px;">
+                                    {# --- Select для фикс. значения (если есть варианты) --- #}
                                     <select name="fixed_value_select_{{ category.name }}" style="display: none; width: auto; font-size: 0.9em; padding: 5px;">
+                                        <option value="" {% if not form_data.get('fixed_value_select_' + category.name) %}selected{% endif %}>-- Выберите --</option> {# Добавим пустую опцию #}
                                         {% for val in category.values %}
-                                            <option value="{{ val.value_str }}">{{ val.value_str }}</option>
+                                            <option value="{{ val.value_str }}" {% if form_data.get('fixed_value_select_' + category.name) == val.value_str %}selected{% endif %}>{{ val.value_str }}</option>
                                         {% endfor %}
                                     </select>
                                 </div>
                                 <div class="option-random_from_list" style="display: none;">
                                      <label style="font-size: 0.9em;">Выберите значения:</label><br>
+                                     {# --- Чекбоксы для списка значений --- #}
                                      {% for val in category.values %}
-                                        <input type="checkbox" id="list_val_{{ category.id }}_{{ val.id }}" name="allowed_values_{{ category.name }}" value="{{ val.value_str }}" style="width: auto; margin-right: 3px;">
+                                        <input type="checkbox" id="list_val_{{ category.id }}_{{ val.id }}" name="allowed_values_{{ category.name }}" value="{{ val.value_str }}"
+                                               {% if val.value_str in form_data.getlist('allowed_values_' + category.name) %}checked{% endif %}
+                                               style="width: auto; margin-right: 3px;">
                                         <label for="list_val_{{ category.id }}_{{ val.id }}" style="display: inline; font-weight: normal; font-size: 0.9em; margin-right: 10px;">{{ val.value_str }}</label>
                                      {% endfor %}
                                 </div>
                                 <div class="option-range" style="display: none;">
                                     <label for="range_min_{{ category.id }}" style="font-size: 0.9em;">Мин:</label>
-                                    <input type="number" name="range_min_{{ category.name }}" id="range_min_{{ category.id }}" style="width: 70px; font-size: 0.9em; padding: 5px;">
+                                    {# --- Input для Мин диапазона --- #}
+                                    <input type="number" name="range_min_{{ category.name }}" id="range_min_{{ category.id }}"
+                                           value="{{ form_data.get('range_min_' + category.name, '') }}"
+                                           style="width: 70px; font-size: 0.9em; padding: 5px;">
                                     <label for="range_max_{{ category.id }}" style="font-size: 0.9em; margin-left: 5px;">Макс:</label>
-                                    <input type="number" name="range_max_{{ category.name }}" id="range_max_{{ category.id }}" style="width: 70px; font-size: 0.9em; padding: 5px;">
+                                    {# --- Input для Макс диапазона --- #}
+                                    <input type="number" name="range_max_{{ category.name }}" id="range_max_{{ category.id }}"
+                                           value="{{ form_data.get('range_max_' + category.name, '') }}"
+                                           style="width: 70px; font-size: 0.9em; padding: 5px;">
                                     <label for="range_step_{{ category.id }}" style="font-size: 0.9em; margin-left: 5px;">Шаг:</label>
-                                    <input type="number" name="range_step_{{ category.name }}" id="range_step_{{ category.id }}" value="1" min="1" style="width: 60px; font-size: 0.9em; padding: 5px;">
+                                    {# --- Input для Шага диапазона --- #}
+                                    <input type="number" name="range_step_{{ category.name }}" id="range_step_{{ category.id }}"
+                                           value="{{ form_data.get('range_step_' + category.name, '1') }}" min="1" style="width: 60px; font-size: 0.9em; padding: 5px;">
                                 </div>
                             </div>
                         </div>

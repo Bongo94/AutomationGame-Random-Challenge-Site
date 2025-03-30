@@ -54,3 +54,28 @@
 .apply-all-checkbox + label {
   font-size: 0.8rem;
 }
+
+/* Styling for description toggle */
+.toggle-desc-btn {
+    border-radius: 50%; /* Make button round */
+    width: 1.4em;       /* Adjust size */
+    height: 1.4em;
+    line-height: 1;    /* Center text vertically */
+    font-size: 0.8em;   /* Adjust font size */
+    font-weight: bold;
+    vertical-align: middle; /* Align with text */
+    margin-left: 0.3rem !important;
+}
+
+.value-description {
+    font-size: 0.9em; /* Slightly smaller description */
+    /* display: none; /* Initial state set via inline style */
+}
+
+/* Adjust list styling in results */
+.result-category ul {
+    margin-top: 0.2rem;
+}
+.result-item {
+    margin-bottom: 0.1rem;
+}

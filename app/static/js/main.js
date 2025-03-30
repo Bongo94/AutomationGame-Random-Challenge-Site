@@ -101,12 +101,39 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    // --- NEW: Event listener for description toggles ---
+    const resultsArea = document.getElementById('results-area');
+    if (resultsArea) {
+        resultsArea.addEventListener('click', function(event) {
+            if (event.target.classList.contains('toggle-desc-btn')) {
+                const button = event.target;
+                const targetId = button.getAttribute('data-target-id');
+                const descriptionSpan = document.getElementById(targetId);
+
+                if (descriptionSpan) {
+                    const isExpanded = button.getAttribute('aria-expanded') === 'true';
+                    if (isExpanded) {
+                        descriptionSpan.style.display = 'none';
+                        button.setAttribute('aria-expanded', 'false');
+                        // button.textContent = '?'; // Change back to '?'
+                    } else {
+                        descriptionSpan.style.display = 'inline'; // Or 'block' if preferred
+                        button.setAttribute('aria-expanded', 'true');
+                        // button.textContent = '-'; // Change to '-'
+                    }
+                }
+            }
+        });
+    }
+    // --- END NEW ---
+
 
 }); // End DOMContentLoaded
 
 
-function copyResultToClipboard() {
-    const resultsContainer = document.querySelector('.challenge-results-container');
+// --- UPDATED: Copy function ---
+function copyResultToClipboard(containerId) { // Added containerId parameter
+    const resultsContainer = document.getElementById(containerId); // Use the ID
     if (!resultsContainer) {
         console.warn("Result container not found for copying.");
         return;
@@ -117,21 +144,32 @@ function copyResultToClipboard() {
 
     playerColumns.forEach((card, index) => {
         textToCopy += `\n--- Игрок ${index + 1} ---\n`;
-        const resultItems = card.querySelectorAll('.result-item');
-        if (resultItems.length > 0) {
-             resultItems.forEach(item => {
-                const keyElement = item.querySelector('strong');
-                const valueElement = item.querySelector('span');
-                if (keyElement && valueElement) {
-                     const key = keyElement.innerText.replace(':', '').trim();
-                     const value = valueElement.innerText.trim();
-                     textToCopy += `${key}: ${value}\n`;
-                }
+        const categoryBlocks = card.querySelectorAll('.result-category'); // Get categories
+
+        if (categoryBlocks.length > 0) {
+             categoryBlocks.forEach(catBlock => {
+                 const categoryTitleElement = catBlock.querySelector('strong');
+                 const categoryTitle = categoryTitleElement ? categoryTitleElement.innerText.replace(':', '').trim() : 'Категория';
+                 textToCopy += `${categoryTitle}:\n`;
+
+                 const itemsList = catBlock.querySelectorAll('.result-item');
+                 itemsList.forEach(item => {
+                     const valueSpan = item.querySelector('span:not(.value-description)'); // Get the main value span
+                     const descriptionSpan = item.querySelector('.value-description'); // Get the description span
+
+                     const valueCore = valueSpan ? valueSpan.innerText.trim() : '';
+                     const description = descriptionSpan ? descriptionSpan.innerText.replace('-','').trim() : ''; // Clean up description
+
+                     textToCopy += `  - ${valueCore}`; // Indent items
+                     if (description) {
+                         textToCopy += `: ${description}`; // Add description back with colon
+                     }
+                     textToCopy += '\n';
+                 });
              });
         } else {
             textToCopy += "(Нет данных)\n";
         }
-
     });
 
     textToCopy += "\n---\nСгенерировано: " + new Date().toLocaleString('ru-RU');

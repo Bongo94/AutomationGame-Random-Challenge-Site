@@ -73,7 +73,6 @@ class ChallengeGenerator:
             apply_all = rules.get('apply_all', False) # <-- Получаем флаг "для всех"
 
             try:
-                # Получаем объект категории из БД
                 category = Category.query.filter_by(name=category_name).first()
                 if not category:
                     self.errors.append(f"Категория '{category_name}' не найдена в базе данных.")
@@ -81,22 +80,19 @@ class ChallengeGenerator:
 
                 generated_value_for_all = None
                 if apply_all:
-                    # Генерируем ОДИН раз, если "для всех"
+                    # --- ИЗМЕНЕНИЕ: _generate_single_value_set теперь возвращает список словарей ---
                     generated_value_for_all = self._generate_single_value_set(category, rules, rule_type, count)
-                    if generated_value_for_all is None: # Если произошла ошибка при генерации
-                         continue # Ошибка уже добавлена в self.errors
+                    if generated_value_for_all is None:
+                        continue
 
-                # Распределяем значения по игрокам
                 for i in range(num_players):
                     if apply_all:
-                        # Используем заранее сгенерированное значение
                         player_results[i][category_name] = generated_value_for_all
                     else:
-                        # Генерируем индивидуальное значение для каждого игрока
+                        # --- ИЗМЕНЕНИЕ: _generate_single_value_set теперь возвращает список словарей ---
                         individual_value = self._generate_single_value_set(category, rules, rule_type, count)
                         if individual_value is not None:
-                             player_results[i][category_name] = individual_value
-                        # Если individual_value is None, ошибка уже добавлена, пропускаем для этого игрока
+                            player_results[i][category_name] = individual_value
 
             except ValueError as e:
                  msg = f"Ошибка значения в правилах для '{category_name}': {e}"
@@ -116,39 +112,40 @@ class ChallengeGenerator:
 
     def _generate_single_value_set(self, category, rules, rule_type, count):
         """
-        Вспомогательный метод для генерации одного набора значений (списка)
-        для одной категории по заданным правилам.
-        Возвращает список значений или None в случае ошибки.
+        Генерирует набор значений для ОДНОЙ категории.
+        Возвращает список словарей [{'value': ..., 'description': ...}] или None при ошибке.
         """
         try:
             if rule_type == 'fixed':
-                value = rules.get('value')
-                if value is None:
+                fixed_value_core = rules.get('value')  # Предполагаем, что value в конфиге - это value_core
+                if fixed_value_core is None:
                     raise ValueError("Для правила 'fixed' должно быть указано 'value'.")
-                return [value] # Результат всегда список
+                # Найдем описание в базе, если оно есть для этого значения
+                value_obj = Value.query.filter_by(category_id=category.id, value_core=fixed_value_core).first()
+                description = value_obj.description if value_obj else None
+                # --- ИЗМЕНЕНИЕ: Возвращаем список словарей ---
+                return [{'value': fixed_value_core, 'description': description}]
             elif rule_type == 'random_from_category':
                 return self._get_random_from_category(category, count)
             elif rule_type == 'random_from_list':
-                allowed_values = rules.get('allowed_values')
-                if not isinstance(allowed_values, list):
+                allowed_values_core = rules.get('allowed_values')  # Это список value_core
+                if not isinstance(allowed_values_core, list):
                     raise ValueError("Для правила 'random_from_list' должен быть указан список 'allowed_values'.")
-                return self._get_random_from_list(allowed_values, count)
+                return self._get_random_from_list(category, allowed_values_core, count)
             elif rule_type == 'range':
+                # Для диапазона описание обычно не релевантно или генерируется иначе
                 min_val = rules.get('min')
                 max_val = rules.get('max')
                 step = rules.get('step', 1)
                 if min_val is None or max_val is None:
                     raise ValueError("Для правила 'range' должны быть указаны 'min' и 'max'.")
-                return [self._get_random_from_range(min_val, max_val, step)] # Результат - список с одним значением
-            elif rule_type == 'filter_and_random': # Проверяем, если был добавлен
-                allowed_values = rules.get('allowed_values')
-                if not isinstance(allowed_values, list):
-                    raise ValueError("Для правила 'filter_and_random' должен быть указан список 'allowed_values'.")
-                return self._get_filtered_random(category, allowed_values, count)
+                range_value = self._get_random_from_range(min_val, max_val, step)
+                # --- ИЗМЕНЕНИЕ: Возвращаем список словарей ---
+                return [{'value': str(range_value), 'description': None}]  # Описания нет
+            # Добавить filter_and_random, если используется
             else:
                 raise ValueError(f"Неизвестный тип правила '{rule_type}'.")
         except ValueError as e:
-            # Добавляем ошибку и возвращаем None, чтобы внешний цикл мог её обработать
             msg = f"Категория '{category.name}': {e}"
             if msg not in self.errors: self.errors.append(msg)
             return None
@@ -157,33 +154,45 @@ class ChallengeGenerator:
             if msg not in self.errors: self.errors.append(msg)
             return None
 
-    # --- Вспомогательные методы для разных правил генерации (_get_random_... и т.д.) остаются без изменений ---
-    # Они генерируют ОДИН набор значений (список)
-
     def _get_random_from_category(self, category, count):
-        """Выбирает count случайных значений из всех значений категории."""
-        all_values = [v.value_str for v in category.values]
-        if not all_values:
+        """Выбирает count случайных объектов Value из категории и форматирует результат."""
+        all_value_objects = list(category.values)  # Получаем объекты Value
+        if not all_value_objects:
             raise ValueError(f"Нет доступных значений для категории '{category.name}'.")
-        actual_count = min(count, len(all_values))
-        if actual_count < count:
-            warn_msg = f"Для категории '{category.name}' запрошено {count} значений, но доступно только {len(all_values)}. Выбрано {actual_count}."
-            if warn_msg not in self.errors: self.errors.append(warn_msg) # Используем как предупреждение
-        if actual_count == 0: # Если значений 0, но категория есть
-             raise ValueError(f"Нет доступных значений для категории '{category.name}' после применения ограничений.")
-        return random.sample(all_values, actual_count)
 
-    def _get_random_from_list(self, allowed_values, count):
-        """Выбирает count случайных значений из заданного списка."""
-        if not allowed_values:
-            raise ValueError("Список разрешенных значений пуст.")
-        actual_count = min(count, len(allowed_values))
+        actual_count = min(count, len(all_value_objects))
         if actual_count < count:
-             warn_msg = f"Запрошено {count} значений из списка, но доступно только {len(allowed_values)}. Выбрано {actual_count}."
-             if warn_msg not in self.errors: self.errors.append(warn_msg)
+            warn_msg = f"Для категории '{category.name}' запрошено {count} значений, но доступно только {len(all_value_objects)}. Выбрано {actual_count}."
+            if warn_msg not in self.errors: self.errors.append(warn_msg)
         if actual_count == 0:
-             raise ValueError("Список разрешенных значений пуст или не содержит подходящих вариантов.")
-        return random.sample(allowed_values, actual_count)
+            raise ValueError(f"Нет доступных значений для категории '{category.name}' после применения ограничений.")
+
+        selected_objects = random.sample(all_value_objects, actual_count)
+        # --- ИЗМЕНЕНИЕ: Форматируем в список словарей ---
+        return [{'value': v.value_core, 'description': v.description} for v in selected_objects]
+
+    def _get_random_from_list(self, category, allowed_values_core, count):
+        """Выбирает count случайных объектов Value из заданного списка value_core."""
+        if not allowed_values_core:
+            raise ValueError("Список разрешенных значений (allowed_values) пуст.")
+
+        # Получаем объекты Value, соответствующие разрешенным value_core В ЭТОЙ КАТЕГОРИИ
+        possible_value_objects = [v for v in category.values if v.value_core in allowed_values_core]
+
+        if not possible_value_objects:
+            raise ValueError(
+                f"В категории '{category.name}' нет значений, соответствующих списку: {allowed_values_core}.")
+
+        actual_count = min(count, len(possible_value_objects))
+        if actual_count < count:
+            warn_msg = f"Запрошено {count} значений из списка для '{category.name}', но доступно только {len(possible_value_objects)}. Выбрано {actual_count}."
+            if warn_msg not in self.errors: self.errors.append(warn_msg)
+        if actual_count == 0:
+            raise ValueError("Список разрешенных значений пуст или не содержит подходящих вариантов в этой категории.")
+
+        selected_objects = random.sample(possible_value_objects, actual_count)
+        # --- ИЗМЕНЕНИЕ: Форматируем в список словарей ---
+        return [{'value': v.value_core, 'description': v.description} for v in selected_objects]
 
     def _get_random_from_range(self, min_val, max_val, step):
         """Генерирует случайное число в диапазоне с шагом."""

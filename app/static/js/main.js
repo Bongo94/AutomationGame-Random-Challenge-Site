@@ -1,124 +1,145 @@
-const templateSelect = document.getElementById('template_select');
-        const customSettingsDiv = document.getElementById('custom_settings');
+// static/js/main.js
 
-        function toggleCustomSettings() {
-            if (templateSelect.value === 'custom') {
-                customSettingsDiv.style.display = 'block';
-            } else {
-                customSettingsDiv.style.display = 'none';
-            }
+document.addEventListener('DOMContentLoaded', function() {
+    const templateSelect = document.getElementById('template_select');
+    const customSettingsDiv = document.getElementById('custom_settings');
+
+    function toggleCustomSettings() {
+        if (templateSelect && customSettingsDiv) {
+            customSettingsDiv.style.display = templateSelect.value === 'custom' ? 'block' : 'none';
         }
+    }
 
-        function updateRuleOptions(categoryBlock) {
-            const ruleSelect = categoryBlock.querySelector('select[name^="rule_"]');
-            const selectedRule = ruleSelect.value;
-            const ruleOptionsDiv = categoryBlock.querySelector('.rule-options-' + ruleSelect.id.split('_').pop());
+    function updateRuleOptions(categoryBlock) {
+        const ruleSelect = categoryBlock.querySelector('.rule-select'); // Using class selector
+        if (!ruleSelect) return; // Exit if rule select not found
 
-            // Скрываем все доп. опции
-             ruleOptionsDiv.querySelectorAll('.option-fixed, .option-random_from_list, .option-range').forEach(div => {
-                div.style.display = 'none';
-            });
+        const selectedRule = ruleSelect.value;
+        // Construct the class name for the options div dynamically
+        const categoryId = ruleSelect.id.split('_').pop(); // Get category ID
+        const ruleOptionsDiv = categoryBlock.querySelector('.rule-options-' + categoryId);
+        if (!ruleOptionsDiv) return; // Exit if options div not found
 
-            // Скрываем поле "Кол-во" для fixed и range
-            const countFields = categoryBlock.querySelectorAll('.rule-count-field'); // Находим и label, и input
-             countFields.forEach(field => {
-                field.style.display = (selectedRule === 'fixed' || selectedRule === 'range') ? 'none' : 'block'; // Используем block вместо inline-block для колонок сетки
-             });
+        // Hide all optional rule blocks first
+        ruleOptionsDiv.querySelectorAll('.option-fixed, .option-random_from_list, .option-range').forEach(div => {
+            div.style.display = 'none';
+        });
 
-            // Показываем нужные опции
-            const targetOptionDiv = ruleOptionsDiv.querySelector('.option-' + selectedRule);
-             if (targetOptionDiv) {
-                 targetOptionDiv.style.display = 'block';
+        // Show/hide the "Count" field based on the rule
+        const countFields = categoryBlock.querySelectorAll('.rule-count-field');
+        countFields.forEach(field => {
+            field.style.display = (selectedRule === 'fixed' || selectedRule === 'range') ? 'none' : 'inline-block'; // Or 'block' if layout needs it
+        });
 
-                // Особая логика для выбора input/select в 'fixed'
-                 if (selectedRule === 'fixed') {
-                    const textInput = targetOptionDiv.querySelector('.fixed-input-text');
-                    const selectInput = targetOptionDiv.querySelector('.fixed-input-select');
-                    const categoryValuesExist = selectInput && selectInput.options.length > 1; // Проверяем, есть ли опции кроме "-- Выберите --"
+        // Show the specific options block for the selected rule
+        const targetOptionDiv = ruleOptionsDiv.querySelector('.option-' + selectedRule);
+        if (targetOptionDiv) {
+            targetOptionDiv.style.display = 'block';
+
+            // Special handling for 'fixed' rule: choose between text input and select dropdown
+            if (selectedRule === 'fixed') {
+                const textInput = targetOptionDiv.querySelector('.fixed-input-text');
+                const selectInput = targetOptionDiv.querySelector('.fixed-input-select');
+
+                if (textInput && selectInput) { // Ensure both elements exist
+                    const categoryValuesExist = selectInput.options.length > 1; // Check if select has actual options
+
+                    const categoryName = ruleSelect.name.replace('rule_', ''); // Get category name from rule select name
 
                     if (categoryValuesExist) {
                         textInput.style.display = 'none';
-                        selectInput.style.display = 'block'; // Используем block
-                        textInput.name = '';
-                        selectInput.name = `fixed_value_${ruleSelect.name.split('_')[1]}`;
+                        selectInput.style.display = 'block';
+                        textInput.name = ''; // Disable text input by removing name
+                        selectInput.name = `fixed_value_${categoryName}`; // Enable select input
                     } else {
-                        textInput.style.display = 'block'; // Используем block
+                        textInput.style.display = 'block';
                         selectInput.style.display = 'none';
-                        textInput.name = `fixed_value_${ruleSelect.name.split('_')[1]}`;
-                        selectInput.name = '';
+                        textInput.name = `fixed_value_${categoryName}`; // Enable text input
+                        selectInput.name = ''; // Disable select input by removing name
                     }
-                 }
-             }
+                }
+            }
         }
+    }
 
-        // Инициализация и обработчики (без изменений в логике, но JS должен работать с новой структурой)
-        if(templateSelect) {
-            templateSelect.addEventListener('change', toggleCustomSettings);
-        }
+    // --- Initialize and Event Listeners ---
 
-        if(customSettingsDiv) {
-            customSettingsDiv.querySelectorAll('select[name^="rule_"]').forEach(select => {
-                select.addEventListener('change', function() {
-                    const categoryBlock = this.closest('.custom-category-block');
-                    updateRuleOptions(categoryBlock);
+    // Template selector change
+    if (templateSelect) {
+        templateSelect.addEventListener('change', toggleCustomSettings);
+        toggleCustomSettings(); // Initial check on page load
+    }
+
+    // Custom settings visibility and rule initialization
+    if (customSettingsDiv) {
+        customSettingsDiv.querySelectorAll('.custom-category-block').forEach(block => {
+            const includeCheckbox = block.querySelector('input[name="include_category"]');
+            const rulesDiv = block.querySelector('.custom-rules');
+            const ruleSelect = block.querySelector('.rule-select');
+
+            // Toggle rules visibility based on main category checkbox
+            if (includeCheckbox && rulesDiv) {
+                rulesDiv.style.display = includeCheckbox.checked ? 'block' : 'none'; // Initial state
+                includeCheckbox.addEventListener('change', function() {
+                    rulesDiv.style.display = this.checked ? 'block' : 'none';
+                    if (this.checked) {
+                        updateRuleOptions(block); // Update options if revealed
+                    }
                 });
-            });
-
-            customSettingsDiv.querySelectorAll('.form-check-input[name="include_category"]').forEach(checkbox => {
-                 checkbox.addEventListener('change', function() {
-                     const rulesDiv = this.closest('.custom-category-block').querySelector('.custom-rules');
-                     rulesDiv.style.display = this.checked ? 'block' : 'none';
-                     if(this.checked) {
-                         updateRuleOptions(this.closest('.custom-category-block'));
-                     }
-                 });
-                 // Инициализация видимости блока правил при загрузке (JS теперь в конце, DOM готов)
-                // const rulesDiv = checkbox.closest('.custom-category-block').querySelector('.custom-rules');
-                // rulesDiv.style.display = checkbox.checked ? 'block' : 'none';
-                // if(checkbox.checked) {
-                //      updateRuleOptions(checkbox.closest('.custom-category-block'));
-                // }
-            });
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            if (templateSelect) { // Проверка на случай, если элемента нет
-                toggleCustomSettings(); // Инициализация видимости кастомного блока
             }
 
-            if(customSettingsDiv) { // Проверка на случай, если элемента нет
-                customSettingsDiv.querySelectorAll('.custom-category-block').forEach(block => {
-                    const checkbox = block.querySelector('.form-check-input[name="include_category"]');
-                    if (checkbox) { // Доп. проверка
-                         const rulesDiv = block.querySelector('.custom-rules');
-                         if (rulesDiv) {
-                             rulesDiv.style.display = checkbox.checked ? 'block' : 'none';
-                             if(checkbox.checked) {
-                                 updateRuleOptions(block);
-                             }
-                         }
-                    }
+            // Update rule options when rule type changes
+            if (ruleSelect) {
+                 ruleSelect.addEventListener('change', function() {
+                    updateRuleOptions(block);
                 });
+            }
+
+            // Initial rule options state if category is checked
+            if (includeCheckbox && includeCheckbox.checked) {
+                updateRuleOptions(block);
             }
         });
+    }
 
-        function copyResultToClipboard() {
-            // ... (функция копирования без изменений) ...
-            const resultArea = document.querySelector('.challenge-result');
-            if (!resultArea) return;
-            let textToCopy = "Сгенерированный Челлендж:\n---\n";
-            const resultItems = resultArea.querySelectorAll('.result-item');
-            resultItems.forEach(item => {
-                const key = item.querySelector('strong').innerText;
-                const value = item.querySelector('span').innerText;
-                textToCopy += `${key} ${value}\n`;
-            });
-            textToCopy += "---\nСгенерировано: " + new Date().toLocaleString('ru-RU');
+}); // End DOMContentLoaded
 
-            navigator.clipboard.writeText(textToCopy.trim()).then(function() {
-                alert('Результат скопирован в буфер обмена!');
-            }, function(err) {
-                alert('Не удалось скопировать результат. Попробуйте вручную.');
-                console.error('Ошибка копирования: ', err);
-            });
+
+function copyResultToClipboard() {
+    const resultsContainer = document.querySelector('.challenge-results-container');
+    if (!resultsContainer) {
+        console.warn("Result container not found for copying.");
+        return;
+    }
+
+    let textToCopy = "Сгенерированный Челлендж:\n";
+    const playerColumns = resultsContainer.querySelectorAll('.card'); // Get each player card
+
+    playerColumns.forEach((card, index) => {
+        textToCopy += `\n--- Игрок ${index + 1} ---\n`;
+        const resultItems = card.querySelectorAll('.result-item');
+        if (resultItems.length > 0) {
+             resultItems.forEach(item => {
+                const keyElement = item.querySelector('strong');
+                const valueElement = item.querySelector('span');
+                if (keyElement && valueElement) {
+                     const key = keyElement.innerText.replace(':', '').trim();
+                     const value = valueElement.innerText.trim();
+                     textToCopy += `${key}: ${value}\n`;
+                }
+             });
+        } else {
+            textToCopy += "(Нет данных)\n";
         }
+
+    });
+
+    textToCopy += "\n---\nСгенерировано: " + new Date().toLocaleString('ru-RU');
+
+    navigator.clipboard.writeText(textToCopy.trim()).then(function() {
+        alert('Результаты скопированы в буфер обмена!');
+    }, function(err) {
+        alert('Не удалось скопировать результаты. Попробуйте вручную.');
+        console.error('Ошибка копирования: ', err);
+    });
+}

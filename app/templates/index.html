@@ -1,6 +1,6 @@
 {# app/templates/index.html #}
 {% extends "base.html" %}
-{% from "_macros.html" import render_category_settings %} {# Импорт макроса остается #}
+{% from "_macros.html" import render_category_settings %}
 
 {% block title %}Генератор Челленджей Automation{% endblock %}
 
@@ -8,51 +8,84 @@
     <h1 class="mb-4 text-center">Генератор Челленджей для Automation</h1>
 
     {# Форма генерации #}
-    <form action="{{ url_for('main.generate_challenge') }}" method="post" class="mb-4 p-4 border rounded bg-light">
-        {# Выпадающий список шаблонов #}
-        <div class="mb-3">
-            <label for="template_select" class="form-label">Выберите шаблон:</label>
-            <select name="template_id" id="template_select" class="form-select">
-                <option value="custom" {% if selected_template_id == 'custom' %}selected{% endif %}>-- Кастомный --</option>
-                {% for template in templates %}
-                <option value="{{ template.id }}" {% if selected_template_id == template.id|string %}selected{% endif %}>{{ template.name }}</option>
-                {% else %}
-                <option value="" disabled>Шаблоны не найдены</option>
-                {% endfor %}
-            </select>
+    <form action="{{ url_for('main.generate_challenge') }}" method="post" class="mb-5 p-4 border rounded bg-light shadow-sm">
+        <div class="row g-3 mb-3 align-items-end">
+            {# Выпадающий список шаблонов #}
+            <div class="col-md-6">
+                <label for="template_select" class="form-label">Выберите шаблон:</label>
+                <select name="template_id" id="template_select" class="form-select">
+                    <option value="custom" {% if selected_template_id == 'custom' %}selected{% endif %}>-- Кастомный --</option>
+                    {% for template in templates %}
+                    <option value="{{ template.id }}" {% if selected_template_id == template.id|string %}selected{% endif %}>{{ template.name }}</option>
+                    {% else %}
+                    <option value="" disabled>Шаблоны не найдены</option>
+                    {% endfor %}
+                </select>
+            </div>
+             {# === NEW: Поле для количества игроков === #}
+             <div class="col-md-3">
+                 <label for="num_players" class="form-label">Количество игроков:</label>
+                 <input type="number" name="num_players" id="num_players" class="form-control"
+                        value="{{ form_data.get('num_players', '1') }}" min="1" max="10"> {# Ограничим 1-10 для разумности #}
+             </div>
+             {# === END NEW === #}
         </div>
 
+
         {# Кастомные настройки (используем макрос) #}
-        <div id="custom_settings" style="display: none;">
-             <h4>Настройка Кастомного Челленджа:</h4>
-             <p class="text-muted"><small>Отметьте категории, которые нужно включить в генерацию, и настройте правила.</small></p>
+        <div id="custom_settings" style="display: {% if selected_template_id == 'custom' %}block{% else %}none{% endif %};" class="mt-4">
+             <h4 class="mb-3 border-bottom pb-2">Настройка Кастомного Челленджа:</h4>
+             <p class="text-muted small mb-3">Отметьте категории, которые нужно включить в генерацию, настройте правила и укажите, применять ли правило для всех игроков.</p>
              {% if all_categories %}
-                {% for category in all_categories %}
-                    {{ render_category_settings(category, form_data) }}
-                {% endfor %}
+                 {# Можно обернуть в row для колонок, если категорий много #}
+                 {# <div class="row"> #}
+                    {% for category in all_categories %}
+                        {# <div class="col-lg-6"> #} {# Пример 2 колонок на больших экранах #}
+                           {{ render_category_settings(category, form_data) }}
+                        {# </div> #}
+                    {% endfor %}
+                 {# </div> #}
              {% else %}
                 <p class="text-muted">Нет доступных категорий для настройки.</p>
              {% endif %}
         </div>
 
         {# Кнопка генерации #}
-        <button type="submit" class="btn btn-primary w-100 mt-3"> <i class="bi bi-dice-5"></i> Сгенерировать Челлендж!</button>
+        <button type="submit" class="btn btn-primary w-100 mt-4 btn-lg"> <i class="bi bi-dice-5"></i> Сгенерировать Челлендж!</button>
     </form>
 
     {# Отображение результата #}
     {% if result %}
-    <div class="challenge-result border rounded p-4 bg-white">
-        <h2 class="mb-3">Результат Генерации:</h2>
-        {% for category, values in result.items() %}
-            <div class="result-item mb-2">
-                <strong>{{ category | replace('_', ' ') | title }}:</strong>
-                <span>{{ values | join(', ') }}</span>
+    <div class="challenge-results-container border rounded p-4 bg-white shadow-sm">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+             <h2 class="mb-0">Результаты Генерации:</h2>
+             <button onclick="copyResultToClipboard()" class="btn btn-secondary btn-sm"> <i class="bi bi-clipboard"></i> Копировать все</button>
+        </div>
+
+        {# Используем row и col для отображения в столбцах #}
+        <div class="row g-4"> {# g-4 добавляет отступы между колонками #}
+            {% for player_result in result %}
+            <div class="col-lg-{{ [12, 6, 4, 3][(result|length - 1) // 4] | default(12) }} col-md-6 col-sm-12"> {# Адаптивные колонки Bootstrap #}
+                <div class="card h-100"> {# Используем карточки для каждого игрока #}
+                    <div class="card-header">
+                         <strong>Игрок {{ loop.index }}</strong>
+                    </div>
+                    <div class="card-body small"> {# Уменьшим шрифт в карточке #}
+                        {% for category, values in player_result.items() %}
+                            <div class="result-item mb-2">
+                                <strong class="d-block text-muted">{{ category | replace('_', ' ') | title }}:</strong> {# Ключ над значением #}
+                                <span class="ps-2">{{ values | join(', ') }}</span> {# Небольшой отступ для значения #}
+                            </div>
+                        {% else %}
+                            <p class="text-muted fst-italic">Нет данных</p>
+                        {% endfor %}
+                    </div>
+                </div>
             </div>
-        {% else %}
-            <p class="text-muted">Результат генерации пуст.</p>
-        {% endfor %}
-        <hr>
-        <button onclick="copyResultToClipboard()" class="btn btn-secondary btn-sm"> <i class="bi bi-clipboard"></i> Копировать результат</button>
+            {% endfor %}
+        </div>
+
+        {# Скрытое поле для копирования #}
         <pre id="raw_result" style="display: none;">{{ result | tojson(indent=2) }}</pre>
     </div>
     {% endif %}
@@ -60,5 +93,6 @@
 
 {# Если для этой страницы нужны особые скрипты, их можно добавить сюда #}
 {% block scripts %}
-    {# Например: <script>...</script> #}
+    {# Скрипт для обновления JS и копирования #}
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 {% endblock %}

@@ -24,7 +24,8 @@ def _build_custom_config_from_form(form_data):
     for category_name in included_categories:
         rule = form_data.get(f'rule_{category_name}')
         count_str = form_data.get(f'count_{category_name}', '1')
-        apply_all = form_data.get(f'apply_all_{category_name}') == 'true' # <-- Получаем значение чекбокса "для всех"
+        apply_all_checked = form_data.get(f'apply_all_{category_name}') == 'true'
+        apply_all_for_generator = not apply_all_checked # Инверсия
 
         category_config = {}
 
@@ -32,7 +33,7 @@ def _build_custom_config_from_form(form_data):
             count = int(count_str) if count_str.isdigit() and int(count_str) > 0 else 1
             category_config['rule'] = rule
             category_config['count'] = count
-            category_config['apply_all'] = apply_all # <-- Добавляем флаг в конфиг
+            category_config['apply_all'] = apply_all_for_generator # <-- Добавляем флаг в конфиг
 
             # Собираем опции для конкретных правил
             if rule == 'fixed':

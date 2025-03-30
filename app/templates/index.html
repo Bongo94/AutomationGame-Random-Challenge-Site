@@ -1,13 +1,13 @@
 {# app/templates/index.html #}
 {% extends "base.html" %}
-{% from "_macros.html" import render_category_settings %} {# Import the macro for custom settings #}
+{% from "_macros.html" import render_category_settings %}
 
-{% block title %}Генератор Челленджей Automation{% endblock %} {# Set the page title #}
+{% block title %}Генератор Челленджей Automation{% endblock %}
 
-{% block content %} {# Start of the main content block #}
+{% block content %}
     <h1 class="mb-4 text-center">Генератор Челленджей для Automation</h1>
 
-    {# Generation Form Section #}
+    {# Форма генерации ... (без изменений) ... #}
     <form action="{{ url_for('main.generate_challenge') }}" method="post" class="mb-5 p-4 border rounded bg-light shadow-sm">
         {# Row for Template Selector and Player Count #}
         <div class="row g-3 mb-3 align-items-end">
@@ -49,48 +49,51 @@
         <button type="submit" class="btn btn-primary w-100 mt-4 btn-lg"> <i class="bi bi-dice-5"></i> Сгенерировать Челлендж!</button>
     </form> {# End of Generation Form #}
 
-
-    {# Results Display Section #}
+    {# Отображение результата #}
     {% if result %}
     <div class="challenge-results-container border rounded p-4 bg-white shadow-sm">
         <div class="d-flex justify-content-between align-items-center mb-3">
              <h2 class="mb-0">Результаты Генерации:</h2>
-             <button onclick="copyResultToClipboard('results-area')" class="btn btn-secondary btn-sm"> <i class="bi bi-clipboard"></i> Копировать все</button>
+             <div> {# Обертка для кнопок справа #}
+                {# --- NEW: Общая кнопка для описаний --- #}
+                <button id="toggle-all-descriptions" class="btn btn-info btn-sm me-2" type="button" aria-expanded="false">
+                    <i class="bi bi-eye-slash"></i> Показать описания
+                </button>
+                {# --- END NEW --- #}
+                <button onclick="copyResultToClipboard('results-area')" class="btn btn-secondary btn-sm"> <i class="bi bi-clipboard"></i> Копировать все</button>
+            </div>
         </div>
 
         <div class="row g-4" id="results-area">
             {# Player Loop #}
             {% for player_result in result %}
-            {% set outer_player_loop_index = loop.index %} {# Store player index here #}
+            {% set outer_player_loop_index = loop.index %}
             <div class="col-lg-{{ [12, 6, 4, 3][(result|length - 1) // 4] | default(12) }} col-md-6 col-sm-12">
                 <div class="card h-100">
                     <div class="card-header">
-                        <strong>Игрок {{ outer_player_loop_index }}</strong> {# Use the stored index #}
+                        <strong>Игрок {{ outer_player_loop_index }}</strong>
                     </div>
                     <div class="card-body small">
                         {# Category Loop #}
                         {% for category_name, items_list in player_result.items() %}
-                        {% set category_loop_index = loop.index %} {# Store category index #}
+                        {% set category_loop_index = loop.index %}
                         <div class="result-category mb-2">
                             <strong class="d-block text-muted">{{ category_name | replace('_', ' ') | title }}:</strong>
                             <ul class="list-unstyled ps-2 mb-0">
                                 {# Item Loop #}
                                 {% for item in items_list %}
-                                    {# Use the stored player and category indices #}
-                                    {% set unique_id_base = "desc-%s-%s-%s"|format(outer_player_loop_index, category_loop_index, loop.index) %}
+                                    {# --- ИЗМЕНЕНИЕ: Уникальный ID не нужен для описания --- #}
+                                    {# {% set unique_id_base = "desc-%s-%s-%s"|format(outer_player_loop_index, category_loop_index, loop.index) %} #}
                                     <li class="result-item">
                                         <span>{{ item.value }}</span>
                                         {% if item.description %}
-                                            {# --- CORRECTED ID GENERATION AGAIN --- #}
-                                            <button class="btn btn-outline-secondary btn-sm py-0 px-1 ms-1 toggle-desc-btn"
-                                                    data-target-id="{{ unique_id_base }}"
-                                                    type="button" aria-expanded="false">?</button>
-                                            <span class="value-description text-muted fst-italic ms-1"
-                                                  id="{{ unique_id_base }}"
+                                            {# --- ИЗМЕНЕНИЕ: Убираем кнопку "?", добавляем класс --- #}
+                                            <span class="value-description text-muted fst-italic ms-1 toggleable-description"
+                                                  {# id="{{ unique_id_base }}" #} {# ID больше не нужен здесь #}
                                                   style="display: none;">
                                                  - {{ item.description }}
                                             </span>
-                                            {# --- END CORRECTION --- #}
+                                            {# --- КОНЕЦ ИЗМЕНЕНИЯ --- #}
                                         {% endif %}
                                     </li>
                                 {% endfor %} {# End Item Loop #}
@@ -108,10 +111,10 @@
         <pre id="raw_result_json" style="display: none;">{{ result | tojson(indent=2) }}</pre>
 
     </div>
-    {% endif %}
+    {% endif %} {# Конец блока if result #}
 
-{% endblock %}
+{% endblock %} {# Конец блока content #}
 
 {% block scripts %}
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-{% endblock %}
+{% endblock %} {# Конец блока scripts #}

@@ -101,32 +101,59 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    // --- NEW: Event listener for description toggles ---
+
+    const toggleAllButton = document.getElementById('toggle-all-descriptions');
     const resultsArea = document.getElementById('results-area');
-    if (resultsArea) {
-        resultsArea.addEventListener('click', function(event) {
-            if (event.target.classList.contains('toggle-desc-btn')) {
-                const button = event.target;
-                const targetId = button.getAttribute('data-target-id');
-                const descriptionSpan = document.getElementById(targetId);
+    let clickCounter = 0;
 
-                if (descriptionSpan) {
-                    const isExpanded = button.getAttribute('aria-expanded') === 'true';
-                    if (isExpanded) {
-                        descriptionSpan.style.display = 'none';
-                        button.setAttribute('aria-expanded', 'false');
-                        // button.textContent = '?'; // Change back to '?'
-                    } else {
-                        descriptionSpan.style.display = 'inline'; // Or 'block' if preferred
-                        button.setAttribute('aria-expanded', 'true');
-                        // button.textContent = '-'; // Change to '-'
-                    }
-                }
-            }
-        });
+    // --- Создаем именованную функцию для обработчика ---
+    function handleToggleDescriptionsClick(event) {
+        clickCounter++;
+        console.log(`--- Toggle Button Click Handler Run #${clickCounter} ---`);
+
+        // event.stopPropagation(); // Можно раскомментировать для теста, если предыдущее не помогло
+
+        // Проверяем класс expanded НА МОМЕНТ ВХОДА в функцию
+        const isCurrentlyExpanded = toggleAllButton.classList.contains('expanded');
+        const descriptions = resultsArea.querySelectorAll('.toggleable-description');
+
+        console.log(`   State on entry: expanded=${isCurrentlyExpanded}`);
+
+        if (descriptions.length === 0) {
+            console.warn("Не найдено элементов с классом 'toggleable-description'.");
+            return;
+        }
+
+        // Действие зависит ТОЛЬКО от состояния на входе
+        if (isCurrentlyExpanded) {
+            console.log("   Action: Hiding descriptions...");
+            descriptions.forEach(span => span.style.display = 'none');
+            toggleAllButton.innerHTML = '<i class="bi bi-eye-slash"></i> Показать описания';
+            toggleAllButton.classList.remove('expanded');
+        } else {
+            console.log("   Action: Showing descriptions...");
+            descriptions.forEach(span => span.style.display = 'inline');
+            toggleAllButton.innerHTML = '<i class="bi bi-eye"></i> Скрыть описания';
+            toggleAllButton.classList.add('expanded');
+        }
+        console.log("--- Handler finished ---");
     }
-    // --- END NEW ---
 
+    if (toggleAllButton && resultsArea) {
+        console.log("Setting up toggle button listener...");
+
+        // --- Удаляем ЛЮБОЙ предыдущий обработчик (на всякий случай) ---
+        // Создаем клон кнопки без обработчиков
+        const newButton = toggleAllButton.cloneNode(true);
+        toggleAllButton.parentNode.replaceChild(newButton, toggleAllButton);
+
+        // Добавляем обработчик к НОВОЙ кнопке
+        newButton.addEventListener('click', handleToggleDescriptionsClick);
+
+    } else {
+        if (!toggleAllButton) console.error("Кнопка с ID 'toggle-all-descriptions' не найдена!");
+        if (!resultsArea) console.error("Область с ID 'results-area' не найдена!");
+    }
 
 }); // End DOMContentLoaded
 

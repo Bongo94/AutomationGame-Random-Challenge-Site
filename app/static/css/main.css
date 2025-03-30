@@ -79,3 +79,22 @@
 .result-item {
     margin-bottom: 0.1rem;
 }
+
+/* Style for the reroll button */
+.reroll-button {
+    line-height: 1; /* Align icon better */
+    margin-left: 0.5rem; /* Space from category title */
+}
+
+/* Optional: subtle hover effect */
+.reroll-button:hover {
+    background-color: #e9ecef; /* Light grey background */
+    border-color: #adb5bd;
+}
+
+/* Style for spinner inside button */
+.reroll-button .spinner-border {
+    width: 0.8rem; /* Smaller spinner */
+    height: 0.8rem;
+    border-width: 0.15em;
+}

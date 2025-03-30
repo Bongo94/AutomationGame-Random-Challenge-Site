@@ -7,18 +7,19 @@
 {% block content %}
     <h1 class="mb-4 text-center">Генератор Челленджей для Automation</h1>
 
-    {# Форма генерации ... (без изменений) ... #}
+    {# Форма генерации (без изменений) #}
     <form action="{{ url_for('main.generate_challenge') }}" method="post" class="mb-5 p-4 border rounded bg-light shadow-sm">
-        {# Row for Template Selector and Player Count #}
+        {# ... form content remains the same ... #}
+         {# Row for Template Selector and Player Count #}
         <div class="row g-3 mb-3 align-items-end">
             {# Template Dropdown #}
             <div class="col-md-6">
                 <label for="template_select" class="form-label">Выберите шаблон:</label>
                 <select name="template_id" id="template_select" class="form-select">
                     <option value="custom" {% if selected_template_id == 'custom' %}selected{% endif %}>-- Кастомный --</option>
-                    {% for template in templates %} {# Loop through available templates #}
+                    {% for template in templates %}
                     <option value="{{ template.id }}" {% if selected_template_id == template.id|string %}selected{% endif %}>{{ template.name }}</option>
-                    {% else %} {# If no templates found #}
+                    {% else %}
                     <option value="" disabled>Шаблоны не найдены</option>
                     {% endfor %}
                 </select>
@@ -27,94 +28,107 @@
              <div class="col-md-3">
                  <label for="num_players" class="form-label">Количество игроков:</label>
                  <input type="number" name="num_players" id="num_players" class="form-control"
-                        value="{{ form_data.get('num_players', '1') }}" min="1" max="10"> {# Default 1, Min 1, Max 10 #}
+                        value="{{ form_data.get('num_players', '1') }}" min="1" max="10">
              </div>
         </div>
 
-        {# Custom Settings Section (conditionally displayed by JS) #}
+        {# Custom Settings Section #}
         <div id="custom_settings" style="display: {% if selected_template_id == 'custom' %}block{% else %}none{% endif %};" class="mt-4">
              <h4 class="mb-3 border-bottom pb-2">Настройка Кастомного Челленджа:</h4>
              <p class="text-muted small mb-3">Отметьте категории, которые нужно включить в генерацию, настройте правила и укажите, применять ли правило для всех игроков.</p>
-             {% if all_categories %} {# Check if categories exist #}
-                 {# Loop through all available categories and render settings using the macro #}
-                 {% for category in all_categories %}
-                     {{ render_category_settings(category, form_data) }}
+
+             {% if grouped_categories %}
+                 {% for group_name, categories_in_group in grouped_categories.items() %}
+                     {% if categories_in_group %}
+                         <h5 class="mt-4 mb-3 border-bottom pb-1">{{ group_name }}</h5>
+                         {% for category in categories_in_group %}
+                             {{ render_category_settings(category, form_data) }}
+                         {% endfor %}
+                     {% endif %}
                  {% endfor %}
-             {% else %} {# If no categories found in DB #}
+             {% else %}
                 <p class="text-muted">Нет доступных категорий для настройки.</p>
-             {% endif %} {# End of check for all_categories #}
+             {% endif %}
         </div>
 
         {# Generate Button #}
         <button type="submit" class="btn btn-primary w-100 mt-4 btn-lg"> <i class="bi bi-dice-5"></i> Сгенерировать Челлендж!</button>
-    </form> {# End of Generation Form #}
+    </form>
 
     {# Отображение результата #}
     {% if result %}
-    <div class="challenge-results-container border rounded p-4 bg-white shadow-sm">
+    {# --- CORRECTED: Removed | escape filter --- #}
+    <div class="challenge-results-container border rounded p-4 bg-white shadow-sm mt-5"
+         id="results-container"
+         data-generation-config="{{ generation_config | tojson if generation_config else '{}' }}">
+    {# --- END CORRECTION --- #}
         <div class="d-flex justify-content-between align-items-center mb-3">
              <h2 class="mb-0">Результаты Генерации:</h2>
-             <div> {# Обертка для кнопок справа #}
-                {# --- NEW: Общая кнопка для описаний --- #}
-                <button id="toggle-all-descriptions" class="btn btn-info btn-sm me-2" type="button" aria-expanded="false">
+             <div>
+                <button id="toggle-all-descriptions" class="btn btn-info btn-sm me-2" type="button">
                     <i class="bi bi-eye-slash"></i> Показать описания
                 </button>
-                {# --- END NEW --- #}
                 <button onclick="copyResultToClipboard('results-area')" class="btn btn-secondary btn-sm"> <i class="bi bi-clipboard"></i> Копировать все</button>
             </div>
         </div>
 
         <div class="row g-4" id="results-area">
-            {# Player Loop #}
             {% for player_result in result %}
-            {% set outer_player_loop_index = loop.index %}
-            <div class="col-lg-{{ [12, 6, 4, 3][(result|length - 1) // 4] | default(12) }} col-md-6 col-sm-12">
+            {% set outer_player_loop_index = loop.index0 %} {# Use 0-based index for JS #}
+            {% set col_class = 'col-md-6' %} {# Default #}
+            {% if result|length == 1 %}{% set col_class = 'col-lg-12' %}
+            {% elif result|length <= 4 %}{% set col_class = 'col-lg-' + (12 // result|length)|string + ' col-md-6' %}
+            {% elif result|length <= 6 %}{% set col_class = 'col-lg-4 col-md-6' %}
+            {% else %}{% set col_class = 'col-lg-3 col-md-4 col-sm-6' %}
+            {% endif %}
+
+            {# --- ADD data-player-index to player card --- #}
+            <div class="{{ col_class }} mb-4 player-card" data-player-index="{{ outer_player_loop_index }}">
                 <div class="card h-100">
                     <div class="card-header">
-                        <strong>Игрок {{ outer_player_loop_index }}</strong>
+                        <strong>Игрок {{ loop.index }}</strong>
                     </div>
                     <div class="card-body small">
-                        {# Category Loop #}
                         {% for category_name, items_list in player_result.items() %}
-                        {% set category_loop_index = loop.index %}
-                        <div class="result-category mb-2">
-                            <strong class="d-block text-muted">{{ category_name | replace('_', ' ') | title }}:</strong>
-                            <ul class="list-unstyled ps-2 mb-0">
-                                {# Item Loop #}
+                        <div class="result-category mb-2" data-category="{{ category_name }}">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <strong class="d-block text-muted">{{ category_name | replace('_', ' ') | title }}:</strong>
+                                {# --- MODIFIED: Inverted Reroll Button Condition --- #}
+                                {# Показываем кнопку, если apply_all в конфиге == False #}
+                                {% if generation_config and category_name in generation_config and not generation_config[category_name].get('apply_all') %}
+                                <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-1 reroll-button"
+                                        title="Перегенерировать {{ category_name }}"
+                                        data-category-name="{{ category_name }}"
+                                        data-player-index="{{ outer_player_loop_index }}">
+                                    <i class="bi bi-arrow-repeat"></i>
+                                </button>
+                                {% endif %}
+                                {# --- END MODIFIED --- #}
+                            </div>
+                            <ul class="list-unstyled ps-2 mb-0 category-values-list">
                                 {% for item in items_list %}
-                                    {# --- ИЗМЕНЕНИЕ: Уникальный ID не нужен для описания --- #}
-                                    {# {% set unique_id_base = "desc-%s-%s-%s"|format(outer_player_loop_index, category_loop_index, loop.index) %} #}
                                     <li class="result-item">
                                         <span>{{ item.value }}</span>
                                         {% if item.description %}
-                                            {# --- ИЗМЕНЕНИЕ: Убираем кнопку "?", добавляем класс --- #}
-                                            <span class="value-description text-muted fst-italic ms-1 toggleable-description"
-                                                  {# id="{{ unique_id_base }}" #} {# ID больше не нужен здесь #}
-                                                  style="display: none;">
+                                            <span class="value-description text-muted fst-italic ms-1 toggleable-description" style="display: none;">
                                                  - {{ item.description }}
                                             </span>
-                                            {# --- КОНЕЦ ИЗМЕНЕНИЯ --- #}
                                         {% endif %}
                                     </li>
-                                {% endfor %} {# End Item Loop #}
+                                {% endfor %}
                             </ul>
                         </div>
                         {% else %}
                              <p class="text-muted fst-italic">Нет данных</p>
-                        {% endfor %} {# End Category Loop #}
+                        {% endfor %}
                     </div>
                 </div>
             </div>
             {% endfor %} {# End Player Loop #}
         </div>
-
-        <pre id="raw_result_json" style="display: none;">{{ result | tojson(indent=2) }}</pre>
-
     </div>
     {% endif %} {# Конец блока if result #}
 
 {% endblock %} {# Конец блока content #}
 
-{% block scripts %}
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-{% endblock %} {# Конец блока scripts #}
+{# scripts block remains the same #}

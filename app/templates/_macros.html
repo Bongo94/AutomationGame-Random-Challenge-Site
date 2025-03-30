@@ -1,6 +1,6 @@
 {# app/templates/_macros.html #}
 {% macro render_category_settings(category, form_data) %}
-<div class="custom-category-block mb-3 p-3 border rounded bg-white shadow-sm"> {# Added more styling #}
+<div class="custom-category-block mb-3 p-3 border rounded bg-white shadow-sm">
     <div class="d-flex justify-content-between align-items-center mb-2">
         {# Чекбокс включения категории #}
         <div class="form-check">
@@ -10,20 +10,21 @@
                 {{ category.name | replace('_', ' ') | title }}
             </label>
         </div>
-        {# === NEW: Чекбокс "Для всех игроков" === #}
+        {# === MODIFIED: Changed checkbox meaning, name, id, and label === #}
         <div class="form-check form-check-inline ms-3">
-             <input class="form-check-input apply-all-checkbox" type="checkbox" id="apply_all_{{ category.id }}" name="apply_all_{{ category.name }}" value="true"
-                    {% if form_data.get('apply_all_' + category.name) %}checked{% endif %}>
-             <label class="form-check-label small text-muted" for="apply_all_{{ category.id }}">
-                 Для всех игроков
+             {# Меняем name и id, чтобы отразить новую логику #}
+             <input class="form-check-input individual-setting-checkbox" type="checkbox" id="individual_{{ category.id }}" name="individual_{{ category.name }}" value="true"
+                    {% if form_data.get('individual_' + category.name) %}checked{% endif %}>
+             <label class="form-check-label small text-muted" for="individual_{{ category.id }}">
+                 Индивидуально для каждого {# Новый текст метки #}
              </label>
         </div>
-        {# === END NEW === #}
+        {# === END MODIFIED === #}
     </div>
 
-
-    {# Блок с правилами (управляется JS) #}
+    {# Блок с правилами (без изменений) #}
     <div class="custom-rules ms-4" style="display: {% if category.name in form_data.getlist('include_category') %}block{% else %}none{% endif %};">
+         {# ... остальной код правил ... #}
          {# Выбор правила и количества #}
          <div class="row align-items-center mb-2 gx-2"> {# Use gx-2 for gutter spacing #}
             <div class="col-auto">
@@ -60,8 +61,8 @@
                                placeholder="Введите значение" class="form-control form-control-sm fixed-input-text">
                         <select name="fixed_value_select_{{ category.name }}" class="form-select form-select-sm fixed-input-select" style="display: none;">
                             <option value="" {% if not form_data.get('fixed_value_select_' + category.name) %}selected{% endif %}>-- Выберите --</option>
-                            {% for val in category.values | sort(attribute='value_str') %}
-                                <option value="{{ val.value_str }}" {% if form_data.get('fixed_value_select_' + category.name) == val.value_str %}selected{% endif %}>{{ val.value_str }}</option>
+                            {% for val in category.values | sort(attribute='value_core') %} {# Используем value_core для value #}
+                                <option value="{{ val.value_core }}" {% if form_data.get('fixed_value_select_' + category.name) == val.value_core %}selected{% endif %}>{{ val.value_core }}</option>
                             {% endfor %}
                         </select>
                      </div>
@@ -71,11 +72,11 @@
             <div class="option-random_from_list border-top pt-2" style="display: none;">
                  <label class="form-label form-label-sm mb-1">Выберите значения:</label><br>
                  <div class="allowed-values-list" style="max-height: 150px; overflow-y: auto; border: 1px solid #eee; padding: 5px;"> {# Added scroll #}
-                 {% for val in category.values | sort(attribute='value_str') %}
+                 {% for val in category.values | sort(attribute='value_core') %} {# Используем value_core для value #}
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="checkbox" id="list_val_{{ category.id }}_{{ val.id }}" name="allowed_values_{{ category.name }}" value="{{ val.value_str }}"
-                               {% if val.value_str in form_data.getlist('allowed_values_' + category.name) %}checked{% endif %}>
-                        <label class="form-check-label small" for="list_val_{{ category.id }}_{{ val.id }}">{{ val.value_str }}</label> {# Made label smaller #}
+                        <input class="form-check-input" type="checkbox" id="list_val_{{ category.id }}_{{ val.id }}" name="allowed_values_{{ category.name }}" value="{{ val.value_core }}"
+                               {% if val.value_core in form_data.getlist('allowed_values_' + category.name) %}checked{% endif %}>
+                        <label class="form-check-label small" for="list_val_{{ category.id }}_{{ val.id }}">{{ val.value_core }}</label> {# Made label smaller #}
                     </div>
                  {% else %}
                      <span class="text-muted fst-italic"><small>Нет доступных значений.</small></span>

@@ -4,9 +4,8 @@
 .custom-category-block {
     transition: background-color 0.2s ease-in-out;
 }
-/* Hover effect for custom blocks */
 .custom-category-block:hover {
-    background-color: #f8f9fa !important; /* Use important if needed to override Bootstrap */
+    background-color: #f8f9fa !important;
 }
 
 /* Reduce font size in custom rules */
@@ -34,7 +33,7 @@
     box-shadow: 0 .125rem .25rem rgba(0,0,0,.075);
 }
 .challenge-results-container .card-header {
-    background-color: #e9ecef; /* Lighter header */
+    background-color: #e9ecef;
     font-weight: 600;
 }
 
@@ -68,11 +67,8 @@
 }
 
 .value-description {
-    font-size: 0.9em; /* Slightly smaller description */
-    /* display: none; /* Initial state set via inline style */
+    font-size: 0.9em;
 }
-
-/* Adjust list styling in results */
 .result-category ul {
     margin-top: 0.2rem;
 }
@@ -82,19 +78,29 @@
 
 /* Style for the reroll button */
 .reroll-button {
-    line-height: 1; /* Align icon better */
-    margin-left: 0.5rem; /* Space from category title */
+    line-height: 1;
+    margin-left: 0.5rem;
 }
-
-/* Optional: subtle hover effect */
 .reroll-button:hover {
-    background-color: #e9ecef; /* Light grey background */
+    background-color: #e9ecef;
     border-color: #adb5bd;
 }
-
-/* Style for spinner inside button */
 .reroll-button .spinner-border {
-    width: 0.8rem; /* Smaller spinner */
+    width: 0.8rem;
     height: 0.8rem;
     border-width: 0.15em;
+}
+
+/* --- NEW: Highlight animation for rerolled items --- */
+.new-item-highlight {
+    animation: highlight-fade 2s ease-out;
+}
+@keyframes highlight-fade {
+    from { background-color: #fff3cd; } /* Bootstrap's 'warning' yellow */
+    to { background-color: transparent; }
+}
+
+/* --- NEW: Make generate button icon align with spinner --- */
+#generate-button .bi {
+    vertical-align: text-bottom;
 }

@@ -5,130 +5,115 @@
 {% block title %}Генератор Челленджей Automation{% endblock %}
 
 {% block content %}
-    <h1 class="mb-4 text-center">Генератор Челленджей для Automation</h1>
+<h1 class="mb-4 text-center">Генератор Челленджей для Automation</h1>
 
-    {# Форма генерации (без изменений) #}
-    <form action="{{ url_for('main.generate_challenge') }}" method="post" class="mb-5 p-4 border rounded bg-light shadow-sm">
-        {# ... form content remains the same ... #}
-         {# Row for Template Selector and Player Count #}
-        <div class="row g-3 mb-3 align-items-end">
-            {# Template Dropdown #}
-            <div class="col-md-6">
-                <label for="template_select" class="form-label">Выберите шаблон:</label>
-                <select name="template_id" id="template_select" class="form-select">
-                    <option value="custom" {% if selected_template_id == 'custom' %}selected{% endif %}>-- Кастомный --</option>
-                    {% for template in templates %}
-                    <option value="{{ template.id }}" {% if selected_template_id == template.id|string %}selected{% endif %}>{{ template.name }}</option>
-                    {% else %}
-                    <option value="" disabled>Шаблоны не найдены</option>
-                    {% endfor %}
-                </select>
-            </div>
-             {# Player Count Input #}
-             <div class="col-md-3">
-                 <label for="num_players" class="form-label">Количество игроков:</label>
-                 <input type="number" name="num_players" id="num_players" class="form-control"
-                        value="{{ form_data.get('num_players', '1') }}" min="1" max="10">
-             </div>
+{# --- Форма с ID для JS --- #}
+<form id="generation-form" class="mb-5 p-4 border rounded bg-light shadow-sm">
+    <div class="row g-3 mb-3 align-items-end">
+        <div class="col-md-6">
+            <label for="template_select" class="form-label">Выберите шаблон:</label>
+            <select name="template_id" id="template_select" class="form-select">
+                <option value="custom" selected>-- Кастомный --</option>
+                {% for template in templates %}
+                <option value="{{ template.id }}">{{ template.name }}</option>
+                {% endfor %}
+            </select>
         </div>
-
-        {# Custom Settings Section #}
-        <div id="custom_settings" style="display: {% if selected_template_id == 'custom' %}block{% else %}none{% endif %};" class="mt-4">
-             <h4 class="mb-3 border-bottom pb-2">Настройка Кастомного Челленджа:</h4>
-             <p class="text-muted small mb-3">Отметьте категории, которые нужно включить в генерацию, настройте правила и укажите, применять ли правило для всех игроков.</p>
-
-             {% if grouped_categories %}
-                 {% for group_name, categories_in_group in grouped_categories.items() %}
-                     {% if categories_in_group %}
-                         <h5 class="mt-4 mb-3 border-bottom pb-1">{{ group_name }}</h5>
-                         {% for category in categories_in_group %}
-                             {{ render_category_settings(category, form_data) }}
-                         {% endfor %}
-                     {% endif %}
-                 {% endfor %}
-             {% else %}
-                <p class="text-muted">Нет доступных категорий для настройки.</p>
-             {% endif %}
+        <div class="col-md-3">
+            <label for="num_players" class="form-label">Количество игроков:</label>
+            <input type="number" name="num_players" id="num_players" class="form-control" value="1" min="1" max="10">
         </div>
+    </div>
 
-        {# Generate Button #}
-        <button type="submit" class="btn btn-primary w-100 mt-4 btn-lg"> <i class="bi bi-dice-5"></i> Сгенерировать Челлендж!</button>
-    </form>
-
-    {# Отображение результата #}
-    {% if result %}
-    {# --- CORRECTED: Removed | escape filter --- #}
-    <div class="challenge-results-container border rounded p-4 bg-white shadow-sm mt-5"
-         id="results-container"
-         data-generation-config="{{ generation_config | tojson if generation_config else '{}' }}">
-    {# --- END CORRECTION --- #}
-        <div class="d-flex justify-content-between align-items-center mb-3">
-             <h2 class="mb-0">Результаты Генерации:</h2>
-             <div>
-                <button id="toggle-all-descriptions" class="btn btn-info btn-sm me-2" type="button">
-                    <i class="bi bi-eye-slash"></i> Показать описания
-                </button>
-                <button onclick="copyResultToClipboard('results-area')" class="btn btn-secondary btn-sm"> <i class="bi bi-clipboard"></i> Копировать все</button>
-            </div>
-        </div>
-
-        <div class="row g-4" id="results-area">
-            {% for player_result in result %}
-            {% set outer_player_loop_index = loop.index0 %} {# Use 0-based index for JS #}
-            {% set col_class = 'col-md-6' %} {# Default #}
-            {% if result|length == 1 %}{% set col_class = 'col-lg-12' %}
-            {% elif result|length <= 4 %}{% set col_class = 'col-lg-' + (12 // result|length)|string + ' col-md-6' %}
-            {% elif result|length <= 6 %}{% set col_class = 'col-lg-4 col-md-6' %}
-            {% else %}{% set col_class = 'col-lg-3 col-md-4 col-sm-6' %}
-            {% endif %}
-
-            {# --- ADD data-player-index to player card --- #}
-            <div class="{{ col_class }} mb-4 player-card" data-player-index="{{ outer_player_loop_index }}">
-                <div class="card h-100">
-                    <div class="card-header">
-                        <strong>Игрок {{ loop.index }}</strong>
-                    </div>
-                    <div class="card-body small">
-                        {% for category_name, items_list in player_result.items() %}
-                        <div class="result-category mb-2" data-category="{{ category_name }}">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <strong class="d-block text-muted">{{ category_name | replace('_', ' ') | title }}:</strong>
-                                {# --- MODIFIED: Inverted Reroll Button Condition --- #}
-                                {# Показываем кнопку, если apply_all в конфиге == False #}
-                                {% if generation_config and category_name in generation_config and not generation_config[category_name].get('apply_all') %}
-                                <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-1 reroll-button"
-                                        title="Перегенерировать {{ category_name }}"
-                                        data-category-name="{{ category_name }}"
-                                        data-player-index="{{ outer_player_loop_index }}">
-                                    <i class="bi bi-arrow-repeat"></i>
-                                </button>
-                                {% endif %}
-                                {# --- END MODIFIED --- #}
-                            </div>
-                            <ul class="list-unstyled ps-2 mb-0 category-values-list">
-                                {% for item in items_list %}
-                                    <li class="result-item">
-                                        <span>{{ item.value }}</span>
-                                        {% if item.description %}
-                                            <span class="value-description text-muted fst-italic ms-1 toggleable-description" style="display: none;">
-                                                 - {{ item.description }}
-                                            </span>
-                                        {% endif %}
-                                    </li>
-                                {% endfor %}
-                            </ul>
-                        </div>
-                        {% else %}
-                             <p class="text-muted fst-italic">Нет данных</p>
+    {# --- ACCORDION for Custom Settings --- #}
+    <div id="custom_settings" class="mt-4">
+        <h4 class="mb-3 border-bottom pb-2">Настройка Кастомного Челленджа:</h4>
+        <div class="accordion" id="customSettingsAccordion">
+            {% for group_name, categories_in_group in grouped_categories.items() %}
+            {% if categories_in_group %}
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="heading-{{ loop.index }}">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ loop.index }}" aria-expanded="false" aria-controls="collapse-{{ loop.index }}">
+                        {{ group_name }}
+                    </button>
+                </h2>
+                <div id="collapse-{{ loop.index }}" class="accordion-collapse collapse" aria-labelledby="heading-{{ loop.index }}" data-bs-parent="#customSettingsAccordion">
+                    <div class="accordion-body">
+                        {% for category in categories_in_group %}
+                        {{ render_category_settings(category) }}
                         {% endfor %}
                     </div>
                 </div>
             </div>
-            {% endfor %} {# End Player Loop #}
+            {% endif %}
+            {% endfor %}
         </div>
     </div>
-    {% endif %} {# Конец блока if result #}
 
-{% endblock %} {# Конец блока content #}
+    <button type="submit" id="generate-button" class="btn btn-primary w-100 mt-4 btn-lg">
+        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+        <i class="bi bi-dice-5"></i>
+        <span class="button-text">Сгенерировать Челлендж!</span>
+    </button>
+</form>
 
-{# scripts block remains the same #}
+{# --- Placeholder for AJAX results --- #}
+<div id="results-placeholder"></div>
+
+{# --- TEMPLATES for client-side rendering --- #}
+<template id="player-card-template">
+    <div class="mb-4 player-card">
+        <div class="card h-100">
+            <div class="card-header">
+                <strong>Игрок <span class="player-number"></span></strong>
+            </div>
+            <div class="card-body small categories-list">
+                <!-- Category items will be inserted here -->
+            </div>
+        </div>
+    </div>
+</template>
+
+<template id="category-item-template">
+    <div class="result-category mb-2">
+        <div class="d-flex justify-content-between align-items-center">
+            <strong class="d-block text-muted category-name"></strong>
+            <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-1 reroll-button d-none" title="Перегенерировать">
+                <i class="bi bi-arrow-repeat"></i>
+            </button>
+        </div>
+        <ul class="list-unstyled ps-2 mb-0 category-values-list">
+            <!-- Value list items will be inserted here -->
+        </ul>
+    </div>
+</template>
+
+{# --- MODAL for saving a template --- #}
+<div class="modal fade" id="saveTemplateModal" tabindex="-1" aria-labelledby="saveTemplateModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="saveTemplateModalLabel">Сохранить как новый шаблон</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="save-template-form">
+                    <div class="mb-3">
+                        <label for="template-name" class="form-label">Имя шаблона</label>
+                        <input type="text" class="form-control" id="template-name" required>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="template-description" class="form-label">Описание (опционально)</label>
+                        <textarea class="form-control" id="template-description" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="confirm-save-template">Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

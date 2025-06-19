@@ -1,114 +1,78 @@
 {# app/templates/_macros.html #}
-{% macro render_category_settings(category, form_data) %}
+{% macro render_category_settings(category) %}
 <div class="custom-category-block mb-3 p-3 border rounded bg-white shadow-sm">
     <div class="d-flex justify-content-between align-items-center mb-2">
-        {# Чекбокс включения категории #}
         <div class="form-check">
-            <input class="form-check-input" type="checkbox" id="include_cat_{{ category.id }}" name="include_category" value="{{ category.name }}"
-                   {% if category.name in form_data.getlist('include_category') %}checked{% endif %}>
+            <input class="form-check-input" type="checkbox" id="include_cat_{{ category.id }}" name="include_category" value="{{ category.name }}">
             <label class="form-check-label fw-bold" for="include_cat_{{ category.id }}">
                 {{ category.name | replace('_', ' ') | title }}
             </label>
         </div>
-        {# === MODIFIED: Changed checkbox meaning, name, id, and label === #}
+        {# === MODIFIED: Simplified "Apply to All" Checkbox === #}
         <div class="form-check form-check-inline ms-3">
-             {# Меняем name и id, чтобы отразить новую логику #}
-             <input class="form-check-input individual-setting-checkbox" type="checkbox" id="individual_{{ category.id }}" name="individual_{{ category.name }}" value="true"
-                    {% if form_data.get('individual_' + category.name) %}checked{% endif %}>
-             <label class="form-check-label small text-muted" for="individual_{{ category.id }}">
-                 Индивидуально для каждого {# Новый текст метки #}
+             <input class="form-check-input" type="checkbox" id="apply_all_{{ category.id }}" name="apply_all_{{ category.name }}" value="true" checked>
+             <label class="form-check-label small text-muted" for="apply_all_{{ category.id }}">
+                 Применить для всех игроков
              </label>
         </div>
         {# === END MODIFIED === #}
     </div>
 
-    {# Блок с правилами (без изменений) #}
-    <div class="custom-rules ms-4" style="display: {% if category.name in form_data.getlist('include_category') %}block{% else %}none{% endif %};">
-         {# ... остальной код правил ... #}
-         {# Выбор правила и количества #}
-         <div class="row align-items-center mb-2 gx-2"> {# Use gx-2 for gutter spacing #}
+    <div class="custom-rules ms-4" style="display: none;">
+        <div class="row align-items-center mb-2 gx-2">
             <div class="col-auto">
                 <label for="rule_{{ category.id }}" class="col-form-label col-form-label-sm">Правило:</label>
             </div>
             <div class="col-auto">
-                <select name="rule_{{ category.name }}" id="rule_{{ category.id }}" class="form-select form-select-sm rule-select"> {# Added class rule-select #}
-                    <option value="random_from_category" {% if form_data.get('rule_' + category.name) == 'random_from_category' or not form_data.get('rule_' + category.name) %}selected{% endif %}>Случайно из всех</option>
-                    <option value="random_from_list" {% if form_data.get('rule_' + category.name) == 'random_from_list' %}selected{% endif %}>Случайно из списка</option>
-                    <option value="range" {% if form_data.get('rule_' + category.name) == 'range' %}selected{% endif %}>Диапазон (числа)</option>
-                    <option value="fixed" {% if form_data.get('rule_' + category.name) == 'fixed' %}selected{% endif %}>Фиксированное значение</option>
+                <select name="rule_{{ category.name }}" id="rule_{{ category.id }}" class="form-select form-select-sm rule-select">
+                    <option value="random_from_category" selected>Случайно из всех</option>
+                    <option value="random_from_list">Случайно из списка</option>
+                    <option value="range">Диапазон (числа)</option>
+                    <option value="fixed">Фиксированное значение</option>
                 </select>
             </div>
             <div class="col-auto rule-count-field">
                 <label for="count_{{ category.id }}" class="col-form-label col-form-label-sm ms-2">Кол-во:</label>
             </div>
              <div class="col-auto rule-count-field">
-                <input type="number" name="count_{{ category.name }}" id="count_{{ category.id }}"
-                       value="{{ form_data.get('count_' + category.name, '1') }}" min="1" max="10" class="form-control form-control-sm" style="width: 70px;">
+                <input type="number" name="count_{{ category.name }}" id="count_{{ category.id }}" value="1" min="1" max="10" class="form-control form-control-sm" style="width: 70px;">
             </div>
         </div>
 
-        {# Поля для специфичных правил #}
-        <div class="rule-options rule-options-{{ category.id }} mt-2"> {# Added margin top #}
-            {# Опция Fixed #}
+        <div class="rule-options rule-options-{{ category.id }} mt-2">
             <div class="option-fixed border-top pt-2" style="display: none;">
-                 <div class="row align-items-center gx-2">
-                     <div class="col-auto">
-                        <label for="fixed_value_{{ category.id }}" class="col-form-label col-form-label-sm">Значение:</label>
-                     </div>
-                     <div class="col"> {# Use col to take remaining space #}
-                        <input type="text" name="fixed_value_{{ category.name }}" id="fixed_value_{{ category.id }}"
-                               value="{{ form_data.get('fixed_value_' + category.name, '') }}"
-                               placeholder="Введите значение" class="form-control form-control-sm fixed-input-text">
+                <div class="row align-items-center gx-2">
+                    <div class="col-auto"><label for="fixed_value_{{ category.id }}" class="col-form-label col-form-label-sm">Значение:</label></div>
+                    <div class="col">
+                        <input type="text" name="fixed_value_{{ category.name }}" id="fixed_value_{{ category.id }}" placeholder="Введите значение" class="form-control form-control-sm fixed-input-text">
                         <select name="fixed_value_select_{{ category.name }}" class="form-select form-select-sm fixed-input-select" style="display: none;">
-                            <option value="" {% if not form_data.get('fixed_value_select_' + category.name) %}selected{% endif %}>-- Выберите --</option>
-                            {% for val in category.values | sort(attribute='value_core') %} {# Используем value_core для value #}
-                                <option value="{{ val.value_core }}" {% if form_data.get('fixed_value_select_' + category.name) == val.value_core %}selected{% endif %}>{{ val.value_core }}</option>
+                            <option value="" selected>-- Выберите --</option>
+                            {% for val in category.values | sort(attribute='value_core') %}
+                            <option value="{{ val.value_core }}">{{ val.value_core }}</option>
                             {% endfor %}
                         </select>
-                     </div>
-                 </div>
-            </div>
-            {# Опция Random from List #}
-            <div class="option-random_from_list border-top pt-2" style="display: none;">
-                 <label class="form-label form-label-sm mb-1">Выберите значения:</label><br>
-                 <div class="allowed-values-list" style="max-height: 150px; overflow-y: auto; border: 1px solid #eee; padding: 5px;"> {# Added scroll #}
-                 {% for val in category.values | sort(attribute='value_core') %} {# Используем value_core для value #}
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="checkbox" id="list_val_{{ category.id }}_{{ val.id }}" name="allowed_values_{{ category.name }}" value="{{ val.value_core }}"
-                               {% if val.value_core in form_data.getlist('allowed_values_' + category.name) %}checked{% endif %}>
-                        <label class="form-check-label small" for="list_val_{{ category.id }}_{{ val.id }}">{{ val.value_core }}</label> {# Made label smaller #}
                     </div>
-                 {% else %}
-                     <span class="text-muted fst-italic"><small>Нет доступных значений.</small></span>
-                 {% endfor %}
-                 </div>
+                </div>
             </div>
-            {# Опция Range #}
+            <div class="option-random_from_list border-top pt-2" style="display: none;">
+                <label class="form-label form-label-sm mb-1">Выберите значения:</label>
+                <div class="allowed-values-list">
+                {% for val in category.values | sort(attribute='value_core') %}
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" id="list_val_{{ category.id }}_{{ val.id }}" name="allowed_values_{{ category.name }}" value="{{ val.value_core }}">
+                        <label class="form-check-label small" for="list_val_{{ category.id }}_{{ val.id }}">{{ val.value_core }}</label>
+                    </div>
+                {% else %}<span class="text-muted fst-italic"><small>Нет доступных значений.</small></span>{% endfor %}
+                </div>
+            </div>
             <div class="option-range border-top pt-2" style="display: none;">
                 <div class="row g-2 align-items-center">
-                    <div class="col-auto">
-                        <label for="range_min_{{ category.id }}" class="col-form-label col-form-label-sm">Мин:</label>
-                    </div>
-                    <div class="col-auto">
-                        <input type="number" name="range_min_{{ category.name }}" id="range_min_{{ category.id }}"
-                               value="{{ form_data.get('range_min_' + category.name, '') }}"
-                               class="form-control form-control-sm" style="width: 80px;">
-                    </div>
-                     <div class="col-auto">
-                        <label for="range_max_{{ category.id }}" class="col-form-label col-form-label-sm">Макс:</label>
-                     </div>
-                    <div class="col-auto">
-                        <input type="number" name="range_max_{{ category.name }}" id="range_max_{{ category.id }}"
-                               value="{{ form_data.get('range_max_' + category.name, '') }}"
-                               class="form-control form-control-sm" style="width: 80px;">
-                    </div>
-                     <div class="col-auto">
-                        <label for="range_step_{{ category.id }}" class="col-form-label col-form-label-sm">Шаг:</label>
-                     </div>
-                    <div class="col-auto">
-                        <input type="number" name="range_step_{{ category.name }}" id="range_step_{{ category.id }}"
-                               value="{{ form_data.get('range_step_' + category.name, '1') }}" min="1" class="form-control form-control-sm" style="width: 70px;">
-                    </div>
+                    <div class="col-auto"><label for="range_min_{{ category.id }}" class="col-form-label col-form-label-sm">Мин:</label></div>
+                    <div class="col-auto"><input type="number" name="range_min_{{ category.name }}" id="range_min_{{ category.id }}" class="form-control form-control-sm" style="width: 80px;"></div>
+                    <div class="col-auto"><label for="range_max_{{ category.id }}" class="col-form-label col-form-label-sm">Макс:</label></div>
+                    <div class="col-auto"><input type="number" name="range_max_{{ category.name }}" id="range_max_{{ category.id }}" class="form-control form-control-sm" style="width: 80px;"></div>
+                    <div class="col-auto"><label for="range_step_{{ category.id }}" class="col-form-label col-form-label-sm">Шаг:</label></div>
+                    <div class="col-auto"><input type="number" name="range_step_{{ category.name }}" id="range_step_{{ category.id }}" value="1" min="1" class="form-control form-control-sm" style="width: 70px;"></div>
                 </div>
             </div>
         </div>

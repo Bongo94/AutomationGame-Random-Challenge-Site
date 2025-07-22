@@ -104,3 +104,50 @@
 #generate-button .bi {
     vertical-align: text-bottom;
 }
+/* Additional styles for new reroll buttons */
+.btn-group .btn {
+    margin-right: 0;
+}
+
+/* Better responsive design for reroll buttons */
+@media (max-width: 768px) {
+    .reroll-single-btn, .reroll-all-btn {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+    
+    .btn-group .btn {
+        border-radius: 0.25rem !important;
+        margin-right: 0.25rem;
+    }
+    
+    .btn-group .btn:last-child {
+        margin-right: 0;
+    }
+}
+
+/* Improved spacing for settings reroll buttons */
+.custom-category-block .btn-group {
+    white-space: nowrap;
+}
+
+/* Enhanced hover effects for reroll buttons */
+.reroll-single-btn:hover {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: white;
+}
+
+.reroll-all-btn:hover {
+    background-color: #198754;
+    border-color: #198754;
+    color: white;
+}
+
+/* Loading state for reroll buttons */
+.reroll-single-btn:disabled,
+.reroll-all-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+

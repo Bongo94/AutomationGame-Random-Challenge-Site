@@ -78,9 +78,14 @@
     <div class="result-category mb-2">
         <div class="d-flex justify-content-between align-items-center">
             <strong class="d-block text-muted category-name"></strong>
-            <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-1 reroll-button d-none" title="Перегенерировать">
-                <i class="bi bi-arrow-repeat"></i>
-            </button>
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-outline-primary btn-sm py-0 px-1 reroll-button d-none" title="Перегенерировать для этого игрока">
+                    <i class="bi bi-arrow-repeat"></i> Один
+                </button>
+                <button type="button" class="btn btn-outline-success btn-sm py-0 px-1 reroll-all-button d-none" title="Перегенерировать одно значение для всех игроков">
+                    <i class="bi bi-arrow-repeat"></i> Все
+                </button>
+            </div>
         </div>
         <ul class="list-unstyled ps-2 mb-0 category-values-list">
             <!-- Value list items will be inserted here -->

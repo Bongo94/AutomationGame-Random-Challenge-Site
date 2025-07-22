@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- STATE ---
     let generationConfig = {}; // Store config for reroll/save
+    let currentResults = []; // Store current results for reroll all functionality
 
     // --- EVENT LISTENERS ---
     if (generationForm) {
@@ -29,6 +30,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     if (customSettingsDiv) {
         setupCustomSettingsInteractions();
+        // Add event listeners for new reroll buttons in settings
+        customSettingsDiv.addEventListener('click', handleSettingsRerollClick);
     }
     if (resultsPlaceholder) {
         resultsPlaceholder.addEventListener('click', handleResultsAreaClick);
@@ -59,6 +62,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 displayErrors(data.errors || ['Произошла неизвестная ошибка.']);
             } else {
                 generationConfig = data.config; // Save config
+                currentResults = data.results; // Save results
                 renderResults(data.results, data.is_custom);
             }
         } catch (error) {
@@ -116,11 +120,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 categoryItem.querySelector('.category-name').textContent = `${categoryName}:`;
 
                 const rerollButton = categoryItem.querySelector('.reroll-button');
-                // Show reroll if rule is not shared for all players
+                const rerollAllButton = categoryItem.querySelector('.reroll-all-button');
+                
+                // Show reroll buttons if rule is not shared for all players
                 if (generationConfig[categoryName] && !generationConfig[categoryName].apply_all) {
                     rerollButton.classList.remove('d-none');
                     rerollButton.dataset.categoryName = categoryName;
                     rerollButton.dataset.playerIndex = playerIndex;
+                }
+                
+                // Always show reroll all button for categories that are included
+                if (generationConfig[categoryName]) {
+                    rerollAllButton.classList.remove('d-none');
+                    rerollAllButton.dataset.categoryName = categoryName;
                 }
 
                 const valuesUl = categoryItem.querySelector('.category-values-list');
@@ -149,10 +161,26 @@ document.addEventListener('DOMContentLoaded', function() {
         if (button.id === 'copy-all-btn') copyResultToClipboard('results-area');
         if (button.id === 'save-as-template-btn') saveTemplateModal.show();
         if (button.classList.contains('reroll-button')) handleReroll(button);
+        if (button.classList.contains('reroll-all-button')) handleRerollAll(button);
     }
 
     /**
-     * Handles the reroll action for a single category.
+     * Handles clicks within the custom settings area for reroll buttons.
+     * @param {Event} e - The click event.
+     */
+    function handleSettingsRerollClick(e) {
+        const button = e.target.closest('button');
+        if (!button) return;
+
+        if (button.classList.contains('reroll-single-btn')) {
+            handleSettingsRerollSingle(button);
+        } else if (button.classList.contains('reroll-all-btn')) {
+            handleSettingsRerollAll(button);
+        }
+    }
+
+    /**
+     * Handles the reroll action for a single category and single player.
      * @param {HTMLElement} button - The reroll button that was clicked.
      */
     async function handleReroll(button) {
@@ -179,6 +207,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 throw new Error(data.error || 'Ошибка сервера при перегенерации.');
             }
             updateCategoryUI(playerIndex, categoryName, data.new_values);
+            // Update stored results
+            currentResults[playerIndex][categoryName] = data.new_values;
         } catch (error) {
             console.error('Reroll failed:', error);
             alert(`Ошибка: ${error.message}`);
@@ -186,6 +216,209 @@ document.addEventListener('DOMContentLoaded', function() {
             button.disabled = false;
             button.innerHTML = originalIcon;
         }
+    }
+
+    /**
+     * Handles the reroll action for a category for all players.
+     * @param {HTMLElement} button - The reroll all button that was clicked.
+     */
+    async function handleRerollAll(button) {
+        const { categoryName } = button.dataset;
+        const categoryRules = generationConfig[categoryName];
+        if (!categoryName || !categoryRules) {
+            alert('Ошибка: Отсутствуют данные для перегенерации.');
+            return;
+        }
+
+        button.disabled = true;
+        const originalIcon = button.innerHTML;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+        try {
+            // Request one value for all players
+            const response = await fetch('/reroll_category', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify({ 
+                    category_name: categoryName, 
+                    rules: categoryRules,
+                    reroll_type: 'all' // Request one value for all players
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                throw new Error(data.error || 'Ошибка сервера при перегенерации.');
+            }
+
+            // Apply the same value to all players
+            if (data.new_values && data.new_values.length > 0) {
+                const singleValue = data.new_values;
+                
+                for (let i = 0; i < currentResults.length; i++) {
+                    updateCategoryUI(i, categoryName, singleValue);
+                    // Update stored results
+                    currentResults[i][categoryName] = singleValue;
+                }
+            }
+        } catch (error) {
+            console.error('Reroll all failed:', error);
+            alert(`Ошибка: ${error.message}`);
+        } finally {
+            button.disabled = false;
+            button.innerHTML = originalIcon;
+        }
+    }
+
+    /**
+     * Handles reroll single from settings area.
+     * @param {HTMLElement} button - The reroll single button that was clicked.
+     */
+    async function handleSettingsRerollSingle(button) {
+        const categoryName = button.dataset.category;
+        if (!categoryName || !currentResults.length) {
+            alert('Сначала сгенерируйте челлендж!');
+            return;
+        }
+
+        // Get current rules from form
+        const categoryRules = getCurrentCategoryRules(categoryName);
+        if (!categoryRules) {
+            alert('Ошибка: Не удалось получить правила категории.');
+            return;
+        }
+
+        // For single reroll from settings, reroll for first player only
+        button.disabled = true;
+        const originalIcon = button.innerHTML;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+        try {
+            const response = await fetch('/reroll_category', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify({ category_name: categoryName, rules: categoryRules })
+            });
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                throw new Error(data.error || 'Ошибка сервера при перегенерации.');
+            }
+            updateCategoryUI(0, categoryName, data.new_values);
+            // Update stored results
+            currentResults[0][categoryName] = data.new_values;
+        } catch (error) {
+            console.error('Settings reroll single failed:', error);
+            alert(`Ошибка: ${error.message}`);
+        } finally {
+            button.disabled = false;
+            button.innerHTML = originalIcon;
+        }
+    }
+
+    /**
+     * Handles reroll all from settings area.
+     * @param {HTMLElement} button - The reroll all button that was clicked.
+     */
+    async function handleSettingsRerollAll(button) {
+        const categoryName = button.dataset.category;
+        if (!categoryName || !currentResults.length) {
+            alert('Сначала сгенерируйте челлендж!');
+            return;
+        }
+
+        // Get current rules from form
+        const categoryRules = getCurrentCategoryRules(categoryName);
+        if (!categoryRules) {
+            alert('Ошибка: Не удалось получить правила категории.');
+            return;
+        }
+
+        button.disabled = true;
+        const originalIcon = button.innerHTML;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+        try {
+            // Request one value for all players
+            const response = await fetch('/reroll_category', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify({ 
+                    category_name: categoryName, 
+                    rules: categoryRules,
+                    reroll_type: 'all' // Request one value for all players
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                throw new Error(data.error || 'Ошибка сервера при перегенерации.');
+            }
+
+            // Apply the same value to all players
+            if (data.new_values && data.new_values.length > 0) {
+                const singleValue = data.new_values;
+                
+                for (let i = 0; i < currentResults.length; i++) {
+                    updateCategoryUI(i, categoryName, singleValue);
+                    // Update stored results
+                    currentResults[i][categoryName] = singleValue;
+                }
+            }
+        } catch (error) {
+            console.error('Settings reroll all failed:', error);
+            alert(`Ошибка: ${error.message}`);
+        } finally {
+            button.disabled = false;
+            button.innerHTML = originalIcon;
+        }
+    }
+
+    /**
+     * Gets current category rules from the form.
+     * @param {string} categoryName - The category name.
+     * @returns {Object|null} - The category rules or null if not found.
+     */
+    function getCurrentCategoryRules(categoryName) {
+        const includeCheckbox = document.querySelector(`input[name="include_category"][value="${categoryName}"]`);
+        if (!includeCheckbox || !includeCheckbox.checked) {
+            return null;
+        }
+
+        const ruleSelect = document.querySelector(`select[name="rule_${categoryName}"]`);
+        const countInput = document.querySelector(`input[name="count_${categoryName}"]`);
+        const applyAllCheckbox = document.querySelector(`input[name="apply_all_${categoryName}"]`);
+
+        if (!ruleSelect) return null;
+
+        const rules = {
+            rule: ruleSelect.value,
+            count: countInput ? parseInt(countInput.value) || 1 : 1,
+            apply_all: applyAllCheckbox ? applyAllCheckbox.checked : true
+        };
+
+        // Add rule-specific parameters
+        if (rules.rule === 'fixed') {
+            const fixedInput = document.querySelector(`input[name="fixed_value_${categoryName}"]`) ||
+                             document.querySelector(`select[name="fixed_value_${categoryName}"]`);
+            if (fixedInput) {
+                rules.fixed_value = fixedInput.value;
+            }
+        } else if (rules.rule === 'random_from_list') {
+            const allowedInputs = document.querySelectorAll(`input[name="allowed_values_${categoryName}"]:checked`);
+            rules.allowed_values = Array.from(allowedInputs).map(input => input.value);
+        } else if (rules.rule === 'range') {
+            const minInput = document.querySelector(`input[name="range_min_${categoryName}"]`);
+            const maxInput = document.querySelector(`input[name="range_max_${categoryName}"]`);
+            const stepInput = document.querySelector(`input[name="range_step_${categoryName}"]`);
+            rules.range_min = minInput ? parseInt(minInput.value) : 0;
+            rules.range_max = maxInput ? parseInt(maxInput.value) : 100;
+            rules.range_step = stepInput ? parseInt(stepInput.value) : 1;
+        }
+
+        return rules;
     }
 
     /**

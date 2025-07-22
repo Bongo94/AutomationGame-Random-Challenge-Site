@@ -252,7 +252,7 @@ class ChallengeGenerator:
             raise ValueError(f"Некорректные параметры для диапазона (min={min_val}, max={max_val}, step={step}): {e}")
 
     # --- NEW METHOD FOR REROLL ---
-    def reroll_category(self, category, rules):
+    def reroll_category(self, category, rules, num_values=None):
         """
         Генерирует значения для ОДНОЙ категории по заданным правилам.
         Не использует self.config. Возвращает список значений или None при ошибке.
@@ -270,6 +270,10 @@ class ChallengeGenerator:
         rule_type = rules.get('rule', 'random_from_category')
         # Count is needed by helpers, default to 1 if not present (e.g., for fixed/range)
         count = rules.get('count', 1)
+
+        # If num_values is provided, override the count from rules for this generation
+        if num_values is not None:
+            count = num_values
 
         # Use the main helper method. It handles all rule types and errors.
         result = self._generate_single_value_set(category, rules, rule_type, count)

@@ -37,6 +37,18 @@
              <div class="col-auto rule-count-field">
                 <input type="number" name="count_{{ category.name }}" id="count_{{ category.id }}" value="1" min="1" max="10" class="form-control form-control-sm" style="width: 70px;">
             </div>
+            {# === NEW: Reroll buttons === #}
+            <div class="col-auto ms-auto">
+                <div class="btn-group" role="group" aria-label="Кнопки рерола">
+                    <button type="button" class="btn btn-outline-primary btn-sm reroll-single-btn" data-category="{{ category.name }}" title="Перегенерировать для одного игрока">
+                        <i class="bi bi-arrow-repeat"></i> Один
+                    </button>
+                    <button type="button" class="btn btn-outline-success btn-sm reroll-all-btn" data-category="{{ category.name }}" title="Перегенерировать для всех игроков">
+                        <i class="bi bi-arrow-repeat"></i> Все
+                    </button>
+                </div>
+            </div>
+            {# === END NEW === #}
         </div>
 
         <div class="rule-options rule-options-{{ category.id }} mt-2">

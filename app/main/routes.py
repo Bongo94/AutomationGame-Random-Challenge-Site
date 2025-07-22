@@ -169,31 +169,40 @@ def generate_challenge():
     unique_errors = list(OrderedDict.fromkeys(e for e in generation_errors if e))
     return jsonify(success=False, errors=unique_errors), 400
 
-
-@main.route('/reroll_category', methods=['POST'])
+@main.route("/reroll_category", methods=["POST"])
 def reroll_category():
-    """Handles AJAX request to reroll a single category."""
+    """Handles AJAX request to reroll a single category or a category for all players."""
     data = request.get_json()
-    if not data or 'category_name' not in data or 'rules' not in data:
+    if not data or "category_name" not in data or "rules" not in data:
         return jsonify(success=False, error="Invalid request data."), 400
 
-    category_name, rules = data.get('category_name'), data.get('rules')
+    category_name, rules = data.get("category_name"), data.get("rules")
+    reroll_type = data.get("reroll_type", "single") # "single" or "all"
 
     try:
         category = Category.query.filter_by(name=category_name).first()
         if not category:
-            return jsonify(success=False, error=f"Category '{category_name}' not found."), 404
+            return jsonify(success=False, error=f"Category \'{category_name}\' not found."), 404
 
         generator = ChallengeGenerator()
-        new_values = generator.reroll_category(category, rules)
+        
+        if reroll_type == "all":
+            # Generate one value and return it
+            new_values = generator.reroll_category(category, rules, num_values=1)
+            if new_values and len(new_values) > 0:
+                new_values = [new_values[0]] # Ensure only one value is returned
+            else:
+                new_values = None
+        else: # "single" or any other type
+            new_values = generator.reroll_category(category, rules)
 
         if new_values is None:
-            error_message = "; ".join(generator.errors) or f"Failed to reroll '{category_name}'."
+            error_message = "; ".join(generator.errors) or f"Failed to reroll \'{category_name}\'."
             return jsonify(success=False, error=error_message), 500
 
         return jsonify(success=True, new_values=new_values)
     except Exception as e:
-        current_app.logger.error(f"Error during reroll for '{category_name}': {e}", exc_info=True)
+        current_app.logger.error(f"Error during reroll for \'{category_name}\': {e}", exc_info=True)
         return jsonify(success=False, error="Internal server error."), 500
 
 

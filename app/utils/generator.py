@@ -1,4 +1,3 @@
-# app/utils/generator.py
 import random
 import json
 from ..models import Category, Value, Template
@@ -18,21 +17,18 @@ class ChallengeGenerator:
         Принимает либо ID шаблона, либо словарь с кастомной конфигурацией.
         """
         self.config = {}
-        # self.result = {} # Result is returned from generate
-        self.errors = [] # Errors accumulated during generation
+        # self.result = {}
+        self.errors = []
 
         if template_id and template_id != 'custom':
             self._load_template(template_id)
         elif custom_config:
-            # Basic validation (more specific validation happens during generation)
             if not isinstance(custom_config, dict):
                  self.errors.append("Предоставленная кастомная конфигурация не является словарем.")
-                 # Don't raise here, let generate handle the empty config if it happens
             else:
                 self.config = custom_config
         else:
-            # If neither is provided, it's an invalid state unless called specifically for reroll
-            pass # Allow initialization without config for reroll purposes
+            pass
 
 
     def _load_template(self, template_id):
@@ -41,12 +37,11 @@ class ChallengeGenerator:
             template = Template.query.get(int(template_id))
             if not template:
                 self.errors.append(f"Шаблон с ID {template_id} не найден.")
-                # Don't raise here, allow generate() to handle it
                 return
-            self.config = template.config # Используем property для получения dict
+            self.config = template.config
             if not isinstance(self.config, dict):
                  self.errors.append(f"Конфигурация шаблона {template_id} не является словарем.")
-                 self.config = {} # Reset config on error
+                 self.config = {}
         except ValueError as e:
              self.errors.append(f"Ошибка загрузки шаблона ID {template_id}: Некорректный ID. {e}")
         except Exception as e:
@@ -58,19 +53,13 @@ class ChallengeGenerator:
         Возвращает список словарей, где каждый словарь - результат для одного игрока,
         и саму использованную конфигурацию.
         """
-        # --- Store the effective config ---
-        effective_config = self.config.copy() # Copy the config used for this generation run
-        # ---
+        effective_config = self.config.copy()
 
         if not effective_config and not self.errors:
-             # If config is empty and no loading errors occurred (e.g., custom config was empty)
              self.errors.append("Конфигурация для генерации пуста.")
 
         if self.errors:
-            # Return errors early if initialization failed severely
-            # Check specifically for "not found" or "not a dict" type errors from _load_template
              if any("не найден" in str(e) or "не является словарем" in str(e) for e in self.errors):
-                 # Return the config (even if empty) so the form can be re-rendered
                  return None, effective_config
 
         if not isinstance(num_players, int) or num_players < 1:
@@ -78,9 +67,7 @@ class ChallengeGenerator:
             num_players = 1
 
         player_results = [{} for _ in range(num_players)]
-        # Don't reset self.errors here, keep initialization errors
 
-        # Proceed with generation only if we have a config
         if effective_config:
             for category_name, rules in effective_config.items():
                 if not isinstance(rules, dict):
@@ -101,24 +88,20 @@ class ChallengeGenerator:
 
                     generated_value_for_all = None
                     if apply_all:
-                        # Reset errors specific to this category generation attempt
                         category_errors_before = set(self.errors)
                         generated_value_for_all = self._generate_single_value_set(category, rules, rule_type, count)
                         category_errors_after = set(self.errors)
-                        # Only proceed if no *new* errors occurred for this category
                         if generated_value_for_all is None and category_errors_after != category_errors_before:
-                            continue # Skip applying if generation failed
+                            continue
 
                     for i in range(num_players):
                         if apply_all:
-                            if generated_value_for_all is not None: # Check if generation succeeded
+                            if generated_value_for_all is not None:
                                 player_results[i][category_name] = generated_value_for_all
                         else:
-                             # Reset errors specific to this category generation attempt
                             category_errors_before = set(self.errors)
                             individual_value = self._generate_single_value_set(category, rules, rule_type, count)
                             category_errors_after = set(self.errors)
-                            # Add value only if generation succeeded without new errors
                             if individual_value is not None and category_errors_after == category_errors_before:
                                 player_results[i][category_name] = individual_value
 
@@ -129,11 +112,8 @@ class ChallengeGenerator:
                     msg = f"Ошибка при генерации для категории '{category_name}': {e}"
                     if msg not in self.errors: self.errors.append(msg)
 
-        # Clean up results: remove players with no generated data if needed (optional)
-        # player_results = [p for p in player_results if p]
 
         if not any(p for p in player_results) and not self.errors:
-             # If results are empty, but no errors were explicitly recorded, add a generic one
              self.errors.append("Не удалось сгенерировать ни одного значения по заданным правилам.")
 
         # Return results AND the config used
@@ -146,7 +126,7 @@ class ChallengeGenerator:
         Возвращает список словарей [{'value': ..., 'description': ...}] или None при ошибке.
         Appends errors to self.errors.
         """
-        original_errors = set(self.errors) # Track errors added by this specific call
+        original_errors = set(self.errors)
         result = None
         try:
             if rule_type == 'fixed':
@@ -170,7 +150,6 @@ class ChallengeGenerator:
                 if min_val is None or max_val is None:
                     raise ValueError("Для правила 'range' должны быть указаны 'min' и 'max'.")
                 range_value = self._get_random_from_range(min_val, max_val, step)
-                 # Ensure range_value is not None (handled inside _get_random_from_range by raising error)
                 result = [{'value': str(range_value), 'description': None}]
             else:
                 raise ValueError(f"Неизвестный тип правила '{rule_type}'.")
@@ -178,13 +157,12 @@ class ChallengeGenerator:
         except ValueError as e:
             msg = f"Категория '{category.name}': {e}"
             if msg not in self.errors: self.errors.append(msg)
-            return None # Error occurred
+            return None
         except Exception as e:
             msg = f"Неожиданная ошибка при генерации значения для '{category.name}': {e}"
             if msg not in self.errors: self.errors.append(msg)
-            return None # Error occurred
+            return None
 
-        # Check if any errors were added during this call specifically
         if set(self.errors) != original_errors:
             return None
 
@@ -195,13 +173,12 @@ class ChallengeGenerator:
         """Выбирает count случайных объектов Value из категории и форматирует результат."""
         all_value_objects = list(category.values)
         if not all_value_objects:
-            # Raise error, caught by _generate_single_value_set
             raise ValueError(f"Нет доступных значений для категории '{category.name}'.")
 
         actual_count = min(count, len(all_value_objects))
         if actual_count < count:
             warn_msg = f"Для категории '{category.name}' запрошено {count}, доступно {len(all_value_objects)}. Выбрано {actual_count}."
-            if warn_msg not in self.errors: self.errors.append(warn_msg) # Append warning, but proceed
+            if warn_msg not in self.errors: self.errors.append(warn_msg)
         if actual_count == 0:
              raise ValueError(f"Нет доступных значений для категории '{category.name}' после применения ограничений.")
 
@@ -223,7 +200,7 @@ class ChallengeGenerator:
         actual_count = min(count, len(possible_value_objects))
         if actual_count < count:
             warn_msg = f"Запрошено {count} из списка для '{category.name}', доступно {len(possible_value_objects)}. Выбрано {actual_count}."
-            if warn_msg not in self.errors: self.errors.append(warn_msg) # Append warning, but proceed
+            if warn_msg not in self.errors: self.errors.append(warn_msg)
         if actual_count == 0:
             raise ValueError("Список разрешенных значений не содержит подходящих вариантов в этой категории.")
 
@@ -235,20 +212,14 @@ class ChallengeGenerator:
         try:
             min_v = int(min_val)
             max_v = int(max_val)
-            step_v = int(step) if step else 1 # Default step to 1 if None or empty
+            step_v = int(step) if step else 1
             if step_v <= 0: raise ValueError("Шаг должен быть положительным числом.")
-            # Allow min == max
             if min_v > max_v: raise ValueError("Мин значение не может быть больше Макс.")
-            # Generate possible values carefully
             possible_values = list(range(min_v, max_v + 1, step_v))
             if not possible_values:
-                # This can happen if e.g. min=10, max=10, step=2
-                # Or min=5, max=10, step=6
-                # Should we allow the min value in this case? Or error? Let's error.
                 raise ValueError(f"В диапазоне [{min_v}, {max_v}] с шагом {step_v} нет доступных целых значений.")
             return random.choice(possible_values)
         except (TypeError, ValueError) as e:
-            # Reraise with more context, caught by _generate_single_value_set
             raise ValueError(f"Некорректные параметры для диапазона (min={min_val}, max={max_val}, step={step}): {e}")
 
     # --- NEW METHOD FOR REROLL ---
@@ -258,7 +229,7 @@ class ChallengeGenerator:
         Не использует self.config. Возвращает список значений или None при ошибке.
         Ошибки записывает в self.errors.
         """
-        self.errors = [] # Clear errors for this specific reroll attempt
+        self.errors = []
 
         if not isinstance(category, Category):
              self.errors.append("Некорректный объект категории для перегенерации.")
@@ -268,16 +239,11 @@ class ChallengeGenerator:
              return None
 
         rule_type = rules.get('rule', 'random_from_category')
-        # Count is needed by helpers, default to 1 if not present (e.g., for fixed/range)
         count = rules.get('count', 1)
 
-        # If num_values is provided, override the count from rules for this generation
         if num_values is not None:
             count = num_values
 
-        # Use the main helper method. It handles all rule types and errors.
         result = self._generate_single_value_set(category, rules, rule_type, count)
 
-        # _generate_single_value_set returns None on error and adds to self.errors
         return result
-    # --- END NEW METHOD ---

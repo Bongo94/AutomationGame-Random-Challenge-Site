@@ -25,7 +25,6 @@
         </div>
     </div>
 
-    {# --- ACCORDION for Custom Settings --- #}
     <div id="custom_settings" class="mt-4">
         <h4 class="mb-3 border-bottom pb-2">Настройка Кастомного Челленджа:</h4>
         <div class="accordion" id="customSettingsAccordion">
@@ -57,10 +56,10 @@
     </button>
 </form>
 
-{# --- Placeholder for AJAX results --- #}
+{# --- placeholder AJAX results --- #}
 <div id="results-placeholder"></div>
 
-{# --- TEMPLATES for client-side rendering --- #}
+{# --- TEMPLATES --- #}
 <template id="player-card-template">
     <div class="mb-4 player-card">
         <div class="card h-100">
@@ -68,7 +67,6 @@
                 <strong>Игрок <span class="player-number"></span></strong>
             </div>
             <div class="card-body small categories-list">
-                <!-- Category items will be inserted here -->
             </div>
         </div>
     </div>
@@ -88,12 +86,10 @@
             </div>
         </div>
         <ul class="list-unstyled ps-2 mb-0 category-values-list">
-            <!-- Value list items will be inserted here -->
         </ul>
     </div>
 </template>
 
-{# --- MODAL for saving a template --- #}
 <div class="modal fade" id="saveTemplateModal" tabindex="-1" aria-labelledby="saveTemplateModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">

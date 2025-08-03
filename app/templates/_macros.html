@@ -8,14 +8,12 @@
                 {{ category.name | replace('_', ' ') | title }}
             </label>
         </div>
-        {# === MODIFIED: Simplified "Apply to All" Checkbox === #}
         <div class="form-check form-check-inline ms-3">
              <input class="form-check-input" type="checkbox" id="apply_all_{{ category.id }}" name="apply_all_{{ category.name }}" value="true" checked>
              <label class="form-check-label small text-muted" for="apply_all_{{ category.id }}">
                  Применить для всех игроков
              </label>
         </div>
-        {# === END MODIFIED === #}
     </div>
 
     <div class="custom-rules ms-4" style="display: none;">
@@ -37,7 +35,6 @@
              <div class="col-auto rule-count-field">
                 <input type="number" name="count_{{ category.name }}" id="count_{{ category.id }}" value="1" min="1" max="10" class="form-control form-control-sm" style="width: 70px;">
             </div>
-            {# === NEW: Reroll buttons === #}
             <div class="col-auto ms-auto">
                 <div class="btn-group" role="group" aria-label="Кнопки рерола">
                     <button type="button" class="btn btn-outline-primary btn-sm reroll-single-btn" data-category="{{ category.name }}" title="Перегенерировать для одного игрока">
@@ -48,7 +45,6 @@
                     </button>
                 </div>
             </div>
-            {# === END NEW === #}
         </div>
 
         <div class="rule-options rule-options-{{ category.id }} mt-2">

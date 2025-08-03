@@ -1,4 +1,3 @@
-// static/js/main.js
 document.addEventListener('DOMContentLoaded', function() {
     // --- FORM ELEMENTS ---
     const generationForm = document.getElementById('generation-form');
@@ -17,8 +16,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const confirmSaveButton = document.getElementById('confirm-save-template');
 
     // --- STATE ---
-    let generationConfig = {}; // Store config for reroll/save
-    let currentResults = []; // Store current results for reroll all functionality
+    let generationConfig = {};
+    let currentResults = [];
 
     // --- EVENT LISTENERS ---
     if (generationForm) {
@@ -26,11 +25,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     if (templateSelect) {
         templateSelect.addEventListener('change', toggleCustomSettings);
-        toggleCustomSettings(); // Initial check
+        toggleCustomSettings();
     }
     if (customSettingsDiv) {
         setupCustomSettingsInteractions();
-        // Add event listeners for new reroll buttons in settings
         customSettingsDiv.addEventListener('click', handleSettingsRerollClick);
     }
     if (resultsPlaceholder) {
@@ -61,8 +59,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!response.ok) {
                 displayErrors(data.errors || ['Произошла неизвестная ошибка.']);
             } else {
-                generationConfig = data.config; // Save config
-                currentResults = data.results; // Save results
+                generationConfig = data.config;
+                currentResults = data.results;
                 renderResults(data.results, data.is_custom);
             }
         } catch (error) {
@@ -99,7 +97,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const cardClone = playerCardTemplate.content.cloneNode(true);
             const playerCard = cardClone.querySelector('.player-card');
 
-            // Dynamic column classes
             const colCount = resultsData.length;
             let colClass = 'col-lg-3 col-md-4 col-sm-6';
             if (colCount === 1) colClass = 'col-lg-12';
@@ -122,14 +119,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 const rerollButton = categoryItem.querySelector('.reroll-button');
                 const rerollAllButton = categoryItem.querySelector('.reroll-all-button');
                 
-                // Show reroll buttons if rule is not shared for all players
                 if (generationConfig[categoryName] && !generationConfig[categoryName].apply_all) {
                     rerollButton.classList.remove('d-none');
                     rerollButton.dataset.categoryName = categoryName;
                     rerollButton.dataset.playerIndex = playerIndex;
                 }
                 
-                // Always show reroll all button for categories that are included
                 if (generationConfig[categoryName]) {
                     rerollAllButton.classList.remove('d-none');
                     rerollAllButton.dataset.categoryName = categoryName;
@@ -235,14 +230,13 @@ document.addEventListener('DOMContentLoaded', function() {
         button.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
 
         try {
-            // Request one value for all players
             const response = await fetch('/reroll_category', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
                 body: JSON.stringify({ 
                     category_name: categoryName, 
                     rules: categoryRules,
-                    reroll_type: 'all' // Request one value for all players
+                    reroll_type: 'all'
                 })
             });
 
@@ -252,13 +246,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 throw new Error(data.error || 'Ошибка сервера при перегенерации.');
             }
 
-            // Apply the same value to all players
             if (data.new_values && data.new_values.length > 0) {
                 const singleValue = data.new_values;
                 
                 for (let i = 0; i < currentResults.length; i++) {
                     updateCategoryUI(i, categoryName, singleValue);
-                    // Update stored results
                     currentResults[i][categoryName] = singleValue;
                 }
             }
@@ -282,14 +274,12 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        // Get current rules from form
         const categoryRules = getCurrentCategoryRules(categoryName);
         if (!categoryRules) {
             alert('Ошибка: Не удалось получить правила категории.');
             return;
         }
 
-        // For single reroll from settings, reroll for first player only
         button.disabled = true;
         const originalIcon = button.innerHTML;
         button.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
@@ -340,14 +330,13 @@ document.addEventListener('DOMContentLoaded', function() {
         button.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
 
         try {
-            // Request one value for all players
             const response = await fetch('/reroll_category', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
                 body: JSON.stringify({ 
                     category_name: categoryName, 
                     rules: categoryRules,
-                    reroll_type: 'all' // Request one value for all players
+                    reroll_type: 'all'
                 })
             });
 
@@ -357,13 +346,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 throw new Error(data.error || 'Ошибка сервера при перегенерации.');
             }
 
-            // Apply the same value to all players
             if (data.new_values && data.new_values.length > 0) {
                 const singleValue = data.new_values;
                 
                 for (let i = 0; i < currentResults.length; i++) {
                     updateCategoryUI(i, categoryName, singleValue);
-                    // Update stored results
                     currentResults[i][categoryName] = singleValue;
                 }
             }
@@ -399,7 +386,6 @@ document.addEventListener('DOMContentLoaded', function() {
             apply_all: applyAllCheckbox ? applyAllCheckbox.checked : true
         };
 
-        // Add rule-specific parameters
         if (rules.rule === 'fixed') {
             const fixedInput = document.querySelector(`input[name="fixed_value_${categoryName}"]`) ||
                              document.querySelector(`select[name="fixed_value_${categoryName}"]`);
@@ -452,13 +438,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 throw new Error(data.error);
             }
 
-            // Add new template to dropdown and select it
             const newOption = new Option(data.new_template.name, data.new_template.id, false, true);
             templateSelect.add(newOption);
             templateSelect.dispatchEvent(new Event('change'));
 
             saveTemplateModal.hide();
-            // Optional: show a success toast/alert
         } catch (error) {
             console.error('Failed to save template:', error);
         }
@@ -483,7 +467,6 @@ document.addEventListener('DOMContentLoaded', function() {
         errors.forEach(err => { errorHtml += `<li>${err}</li>`; });
         errorHtml += '</ul><button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>';
 
-        // Insert after the form
         generationForm.insertAdjacentHTML('afterend', errorHtml);
     }
 
@@ -514,7 +497,6 @@ document.addEventListener('DOMContentLoaded', function() {
             ulElement.appendChild(li);
         });
 
-        // Highlight animation
         ulElement.classList.add('new-item-highlight');
         setTimeout(() => { ulElement.classList.remove('new-item-highlight'); }, 2000);
     }
@@ -574,7 +556,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             if (ruleSelect) {
                  ruleSelect.addEventListener('change', () => updateRuleOptions(block));
-                 updateRuleOptions(block); // Initial call
+                 updateRuleOptions(block);
             }
         });
     }
@@ -585,22 +567,19 @@ document.addEventListener('DOMContentLoaded', function() {
         const categoryId = ruleSelect.id.split('_').pop();
         const ruleOptionsDiv = categoryBlock.querySelector('.rule-options-' + categoryId);
 
-        // Hide all options first
         ruleOptionsDiv.querySelectorAll('.option-fixed, .option-random_from_list, .option-range').forEach(div => div.style.display = 'none');
-        // Hide/show count field
         categoryBlock.querySelectorAll('.rule-count-field').forEach(field => field.style.display = (selectedRule === 'fixed' || selectedRule === 'range') ? 'none' : 'inline-block');
-        // Show the target option
         const targetOptionDiv = ruleOptionsDiv.querySelector('.option-' + selectedRule);
         if (targetOptionDiv) {
             targetOptionDiv.style.display = 'block';
-            if (selectedRule === 'fixed') { // Special logic for fixed value input/select
+            if (selectedRule === 'fixed') {
                 const textInput = targetOptionDiv.querySelector('.fixed-input-text');
                 const selectInput = targetOptionDiv.querySelector('.fixed-input-select');
                 const categoryName = ruleSelect.name.replace('rule_', '');
-                if (selectInput.options.length > 1) { // Values exist
+                if (selectInput.options.length > 1) {
                     textInput.style.display = 'none'; textInput.name = '';
                     selectInput.style.display = 'block'; selectInput.name = `fixed_value_${categoryName}`;
-                } else { // No values, use text input
+                } else {
                     textInput.style.display = 'block'; textInput.name = `fixed_value_${categoryName}`;
                     selectInput.style.display = 'none'; selectInput.name = '';
                 }

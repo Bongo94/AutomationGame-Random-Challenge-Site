@@ -1,14 +1,11 @@
-# app/main/routes.py
 from collections import OrderedDict
-import json
-
-from flask import Blueprint, render_template, current_app, request, jsonify, flash
-from werkzeug.datastructures import MultiDict
 from datetime import datetime
 
-from ..models import Template, Category, Value
+from flask import Blueprint, render_template, current_app, request, jsonify, flash
+
 from .. import db
-from ..utils.generator import ChallengeGenerator, ChallengeGeneratorError
+from ..models import Template, Category
+from ..utils.generator import ChallengeGenerator
 
 main = Blueprint('main', __name__)
 
@@ -24,10 +21,7 @@ def _build_custom_config_from_form(form_data):
         return None, errors
 
     for category_name in included_categories:
-        # --- SIMPLIFIED LOGIC ---
-        # Читаем состояние нового прямого чекбокса 'apply_all_{category_name}'
         apply_all = form_data.get(f'apply_all_{category_name}') == 'true'
-        # --- END SIMPLIFIED LOGIC ---
 
         rule = form_data.get(f'rule_{category_name}')
         count_str = form_data.get(f'count_{category_name}', '1')
@@ -177,7 +171,7 @@ def reroll_category():
         return jsonify(success=False, error="Invalid request data."), 400
 
     category_name, rules = data.get("category_name"), data.get("rules")
-    reroll_type = data.get("reroll_type", "single") # "single" or "all"
+    reroll_type = data.get("reroll_type", "single")
 
     try:
         category = Category.query.filter_by(name=category_name).first()
@@ -187,13 +181,12 @@ def reroll_category():
         generator = ChallengeGenerator()
         
         if reroll_type == "all":
-            # Generate one value and return it
             new_values = generator.reroll_category(category, rules, num_values=1)
             if new_values and len(new_values) > 0:
-                new_values = [new_values[0]] # Ensure only one value is returned
+                new_values = [new_values[0]]
             else:
                 new_values = None
-        else: # "single" or any other type
+        else:
             new_values = generator.reroll_category(category, rules)
 
         if new_values is None:
@@ -225,7 +218,7 @@ def save_template():
 
     try:
         new_template = Template(name=name, description=description)
-        new_template.config = config  # Используем setter для преобразования в JSON
+        new_template.config = config
         db.session.add(new_template)
         db.session.commit()
 

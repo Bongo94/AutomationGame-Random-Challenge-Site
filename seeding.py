@@ -1,28 +1,21 @@
-# seeding.py
 import os
 import json
 from app import db
 from app.models import Category, Value
 from config import datadir
 
-# --- NEW: Определяем группы для категорий ---
 CATEGORY_GROUP_MAP = {
-    # Кузов и Экстерьер
     "Тип кузова (длинна базы)": "Кузов и Экстерьер",
     "Материалы кузова": "Кузов и Экстерьер",
     "Стиль дизайна": "Кузов и Экстерьер",
-    "Осовенные фишки": "Кузов и Экстерьер", # Название странное, но по смыслу тут
-    # Двигатель и Трансмиссия
+    "Осовенные фишки": "Кузов и Экстерьер",
     "Тип двигателя": "Двигатель и Трансмиссия",
     "Тип впуска двигателя": "Двигатель и Трансмиссия",
     "Количество л.с": "Двигатель и Трансмиссия",
     "Привод": "Двигатель и Трансмиссия",
-    # Шасси и Подвеска
     "Тип шасси": "Шасси и Подвеска",
-    # Интерьер и Особенности
     "Интерьер": "Интерьер и Особенности",
     "Мультимедиа": "Интерьер и Особенности",
-    # Ограничения и Мета
     "Классификация": "Ограничения и Мета",
     "Год выпуска": "Ограничения и Мета",
     "Качество": "Ограничения и Мета",
@@ -30,7 +23,6 @@ CATEGORY_GROUP_MAP = {
     "Специальное условие": "Ограничения и Мета",
 }
 DEFAULT_GROUP = "Прочее"
-# --- END NEW ---
 
 def populate_initial_data():
     """
@@ -64,25 +56,22 @@ def populate_initial_data():
                 print(f"Предупреждение: Ожидался список значений для категории '{category_name}', пропуск.")
                 continue
 
-            # --- MODIFIED: Получаем или создаем категорию и назначаем группу ---
             category = Category.query.filter_by(name=category_name).first()
-            display_group = CATEGORY_GROUP_MAP.get(category_name, DEFAULT_GROUP) # Получаем группу из карты
+            display_group = CATEGORY_GROUP_MAP.get(category_name, DEFAULT_GROUP)
 
             if not category:
                 category = Category(name=category_name, display_group=display_group)
                 db.session.add(category)
-                db.session.flush() # Flush to get category ID immediately
+                db.session.flush()
                 print(f"  Добавлена новая категория: {category_name} (Группа: {display_group})")
-            elif category.display_group != display_group: # Обновляем группу, если она изменилась или была пустой
+            elif category.display_group != display_group:
                 print(f"  Обновлена группа для категории '{category_name}' на '{display_group}'")
                 category.display_group = display_group
-            # --- END MODIFIED ---
 
-            # Получаем текущие ОСНОВНЫЕ значения ИЗ БАЗЫ для этой категории
             existing_value_cores = {val.value_core for val in category.values}
 
             for value_item in values_list:
-                value_str = str(value_item) # Полная строка из JSON
+                value_str = str(value_item)
                 parts = value_str.split(':', 1)
                 value_core = parts[0].strip()
                 description = parts[1].strip() if len(parts) > 1 else None
@@ -90,14 +79,7 @@ def populate_initial_data():
                 if value_core not in existing_value_cores:
                     new_value = Value(value_core=value_core, description=description, category=category)
                     db.session.add(new_value)
-                    existing_value_cores.add(value_core) # Добавляем основное значение в set
-                    # Убираем лог добавления значения, чтобы вывод был чище
-                    # print(f"    Добавлено значение '{value_core}' в категорию '{category_name}'")
-                # else: # Логика обновления описания существующего значения (если нужно)
-                #     existing_value = next((v for v in category.values if v.value_core == value_core), None)
-                #     if existing_value and existing_value.description != description:
-                #         print(f"    Обновлено описание для '{value_core}' в '{category_name}'")
-                #         existing_value.description = description
+                    existing_value_cores.add(value_core)
 
 
         db.session.commit()

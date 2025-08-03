@@ -5,55 +5,54 @@ from app.models import Category, Value
 from config import datadir
 
 CATEGORY_GROUP_MAP = {
-    "Тип кузова (длинна базы)": "Кузов и Экстерьер",
-    "Материалы кузова": "Кузов и Экстерьер",
-    "Стиль дизайна": "Кузов и Экстерьер",
-    "Осовенные фишки": "Кузов и Экстерьер",
-    "Тип двигателя": "Двигатель и Трансмиссия",
-    "Тип впуска двигателя": "Двигатель и Трансмиссия",
-    "Количество л.с": "Двигатель и Трансмиссия",
-    "Привод": "Двигатель и Трансмиссия",
-    "Тип шасси": "Шасси и Подвеска",
-    "Интерьер": "Интерьер и Особенности",
-    "Мультимедиа": "Интерьер и Особенности",
-    "Классификация": "Ограничения и Мета",
-    "Год выпуска": "Ограничения и Мета",
-    "Качество": "Ограничения и Мета",
-    "Бюджет": "Ограничения и Мета",
-    "Специальное условие": "Ограничения и Мета",
+    "Body Type (Wheelbase)": "Body & Exterior",
+    "Body Materials": "Body & Exterior",
+    "Special Features": "Body & Exterior",
+    "Engine Type": "Engine & Drivetrain",
+    "Engine Intake Type": "Engine & Drivetrain",
+    "Horsepower": "Engine & Drivetrain",
+    "Drivetrain": "Engine & Drivetrain",
+    "Chassis Type": "Chassis & Suspension",
+    "Interior": "Interior & Features",
+    "Infotainment": "Interior & Features",
+    "Classification": "Restrictions & Meta",
+    "Model Year": "Restrictions & Meta",
+    "Quality": "Restrictions & Meta",
+    "Budget": "Restrictions & Meta",
+    "Special Condition": "Restrictions & Meta",
 }
-DEFAULT_GROUP = "Прочее"
+DEFAULT_GROUP = "Other"
 
 def populate_initial_data():
     """
-    Заполняет или обновляет базу данных значениями категорий из JSON,
-    включая группу отображения для категорий.
+    Populates or updates the database with category values from the JSON file,
+    including the display group for categories.
     """
     json_path = os.path.join(datadir, "ready_data.json")
 
-    print(f"Чтение данных для сидинга/обновления из {json_path}...")
+    print(f"Reading data for seeding/updating from {json_path}...")
     try:
         with open(json_path, "r", encoding="utf-8") as f:
             data = json.load(f)
             automation_data = data.get("automation", {})
             if not automation_data:
-                print("Предупреждение: Секция 'automation' в JSON не найдена или пуста.")
+                print("Warning: 'automation' section in JSON not found or is empty.")
                 # return
     except FileNotFoundError:
-        print(f"Ошибка: Файл {json_path} не найден.")
+        print(f"Error: File {json_path} not found.")
         return
     except json.JSONDecodeError:
-        print(f"Ошибка: Не удалось декодировать JSON из файла {json_path}.")
+        print(f"Error: Failed to decode JSON from file {json_path}.")
         return
     except Exception as e:
-        print(f"Неожиданная ошибка при чтении файла: {e}")
+        print(f"Unexpected error while reading file: {e}")
         return
 
-    print("Проверка и добавление категорий и значений...")
+    print("Checking and adding categories and values...")
     try:
         for category_name, values_list in automation_data.items():
             if not isinstance(values_list, list):
-                print(f"Предупреждение: Ожидался список значений для категории '{category_name}', пропуск.")
+                print(f"Warning: Expected a list of values for category '{category_name}', skipping.")
                 continue
 
             category = Category.query.filter_by(name=category_name).first()
@@ -63,9 +62,9 @@ def populate_initial_data():
                 category = Category(name=category_name, display_group=display_group)
                 db.session.add(category)
                 db.session.flush()
-                print(f"  Добавлена новая категория: {category_name} (Группа: {display_group})")
+                print(f"  Added new category: {category_name} (Group: {display_group})")
             elif category.display_group != display_group:
-                print(f"  Обновлена группа для категории '{category_name}' на '{display_group}'")
+                print(f"  Updated group for category '{category_name}' to '{display_group}'")
                 category.display_group = display_group
 
             existing_value_cores = {val.value_core for val in category.values}
@@ -81,12 +80,11 @@ def populate_initial_data():
                     db.session.add(new_value)
                     existing_value_cores.add(value_core)
 
-
         db.session.commit()
-        print("База данных успешно обновлена/заполнена данными категорий и их групп.")
+        print("Database has been successfully updated/populated with category and group data.")
 
     except Exception as e:
         db.session.rollback()
-        print(f"Ошибка при добавлении/обновлении данных: {e}")
+        print(f"Error while adding/updating data: {e}")
         import traceback
         traceback.print_exc()

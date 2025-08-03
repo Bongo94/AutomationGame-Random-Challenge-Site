@@ -43,8 +43,6 @@ This project is built with Flask and uses a dynamic, AJAX-powered frontend to pr
 
 ## Screenshot
 
-*(Here you should place a screenshot of the application's main interface, showing the form and the generated results)*
-
 ![App Screenshot](resources/site_preview.png)
 
 ---

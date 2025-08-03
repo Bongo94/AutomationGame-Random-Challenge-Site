@@ -2,31 +2,31 @@
 {% extends "base.html" %}
 {% from "_macros.html" import render_category_settings %}
 
-{% block title %}Генератор Челленджей Automation{% endblock %}
+{% block title %}Automation Challenge Generator{% endblock %}
 
 {% block content %}
-<h1 class="mb-4 text-center">Генератор Челленджей для Automation</h1>
+<h1 class="mb-4 text-center">Automation Challenge Generator</h1>
 
-{# --- Форма с ID для JS --- #}
+{# --- Form with IDs for JS --- #}
 <form id="generation-form" class="mb-5 p-4 border rounded bg-light shadow-sm">
     <div class="row g-3 mb-3 align-items-end">
         <div class="col-md-6">
-            <label for="template_select" class="form-label">Выберите шаблон:</label>
+            <label for="template_select" class="form-label">Select a Template:</label>
             <select name="template_id" id="template_select" class="form-select">
-                <option value="custom" selected>-- Кастомный --</option>
+                <option value="custom" selected>-- Custom --</option>
                 {% for template in templates %}
                 <option value="{{ template.id }}">{{ template.name }}</option>
                 {% endfor %}
             </select>
         </div>
         <div class="col-md-3">
-            <label for="num_players" class="form-label">Количество игроков:</label>
+            <label for="num_players" class="form-label">Number of Players:</label>
             <input type="number" name="num_players" id="num_players" class="form-control" value="1" min="1" max="10">
         </div>
     </div>
 
     <div id="custom_settings" class="mt-4">
-        <h4 class="mb-3 border-bottom pb-2">Настройка Кастомного Челленджа:</h4>
+        <h4 class="mb-3 border-bottom pb-2">Custom Challenge Settings:</h4>
         <div class="accordion" id="customSettingsAccordion">
             {% for group_name, categories_in_group in grouped_categories.items() %}
             {% if categories_in_group %}
@@ -52,11 +52,11 @@
     <button type="submit" id="generate-button" class="btn btn-primary w-100 mt-4 btn-lg">
         <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
         <i class="bi bi-dice-5"></i>
-        <span class="button-text">Сгенерировать Челлендж!</span>
+        <span class="button-text">Generate Challenge!</span>
     </button>
 </form>
 
-{# --- placeholder AJAX results --- #}
+{# --- AJAX results placeholder --- #}
 <div id="results-placeholder"></div>
 
 {# --- TEMPLATES --- #}
@@ -64,7 +64,7 @@
     <div class="mb-4 player-card">
         <div class="card h-100">
             <div class="card-header">
-                <strong>Игрок <span class="player-number"></span></strong>
+                <strong>Player <span class="player-number"></span></strong>
             </div>
             <div class="card-body small categories-list">
             </div>
@@ -77,11 +77,11 @@
         <div class="d-flex justify-content-between align-items-center">
             <strong class="d-block text-muted category-name"></strong>
             <div class="btn-group" role="group">
-                <button type="button" class="btn btn-outline-primary btn-sm py-0 px-1 reroll-button d-none" title="Перегенерировать для этого игрока">
-                    <i class="bi bi-arrow-repeat"></i> Один
+                <button type="button" class="btn btn-outline-primary btn-sm py-0 px-1 reroll-button d-none" title="Reroll for this player">
+                    <i class="bi bi-arrow-repeat"></i> One
                 </button>
-                <button type="button" class="btn btn-outline-success btn-sm py-0 px-1 reroll-all-button d-none" title="Перегенерировать одно значение для всех игроков">
-                    <i class="bi bi-arrow-repeat"></i> Все
+                <button type="button" class="btn btn-outline-success btn-sm py-0 px-1 reroll-all-button d-none" title="Reroll one value for all players">
+                    <i class="bi bi-arrow-repeat"></i> All
                 </button>
             </div>
         </div>
@@ -94,25 +94,25 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="saveTemplateModalLabel">Сохранить как новый шаблон</h5>
+                <h5 class="modal-title" id="saveTemplateModalLabel">Save as New Template</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form id="save-template-form">
                     <div class="mb-3">
-                        <label for="template-name" class="form-label">Имя шаблона</label>
+                        <label for="template-name" class="form-label">Template Name</label>
                         <input type="text" class="form-control" id="template-name" required>
                         <div class="invalid-feedback"></div>
                     </div>
                     <div class="mb-3">
-                        <label for="template-description" class="form-label">Описание (опционально)</label>
+                        <label for="template-description" class="form-label">Description (optional)</label>
                         <textarea class="form-control" id="template-description" rows="2"></textarea>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                <button type="button" class="btn btn-primary" id="confirm-save-template">Сохранить</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirm-save-template">Save</button>
             </div>
         </div>
     </div>

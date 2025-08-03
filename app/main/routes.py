@@ -11,13 +11,13 @@ main = Blueprint('main', __name__)
 
 
 def _build_custom_config_from_form(form_data):
-    """Собирает словарь конфигурации из данных формы."""
+    """Builds a configuration dictionary from the form data."""
     custom_config = {}
     errors = []
     included_categories = form_data.getlist('include_category')
 
     if not included_categories:
-        errors.append("Для кастомной генерации нужно выбрать хотя бы одну категорию.")
+        errors.append("At least one category must be selected for custom generation.")
         return None, errors
 
     for category_name in included_categories:
@@ -31,7 +31,7 @@ def _build_custom_config_from_form(form_data):
             count = 1
             if rule not in ['fixed', 'range']:
                 if not count_str.isdigit() or int(count_str) < 1:
-                    raise ValueError("Количество должно быть положительным числом.")
+                    raise ValueError("Count must be a positive number.")
                 count = int(count_str)
 
             category_config['rule'] = rule
@@ -44,47 +44,47 @@ def _build_custom_config_from_form(form_data):
                 if not fixed_value_core:
                     fixed_value_core = form_data.get(f'fixed_value_{category_name}')
                 if not fixed_value_core:
-                    raise ValueError("Не указано значение для правила 'fixed'.")
+                    raise ValueError("A value must be specified for the 'fixed' rule.")
                 category_config['value'] = fixed_value_core
             elif rule == 'random_from_list':
                 allowed_values_core = form_data.getlist(f'allowed_values_{category_name}')
                 if not allowed_values_core:
-                    raise ValueError("Не выбраны значения для правила 'random_from_list'.")
+                    raise ValueError("No values were selected for the 'random_from_list' rule.")
                 category_config['allowed_values'] = allowed_values_core
             elif rule == 'range':
                 min_val = form_data.get(f'range_min_{category_name}')
                 max_val = form_data.get(f'range_max_{category_name}')
                 step_val = form_data.get(f'range_step_{category_name}', '1')
                 if min_val is None or min_val == '' or max_val is None or max_val == '':
-                    raise ValueError("Не указаны Мин/Макс для правила 'range'.")
+                    raise ValueError("Min/Max must be specified for the 'range' rule.")
                 try:
-                    int(min_val);
-                    int(max_val);
+                    int(min_val)
+                    int(max_val)
                     if step_val: int(step_val)
                 except ValueError:
-                    raise ValueError("Мин/Макс/Шаг для диапазона должны быть числами.")
+                    raise ValueError("Min/Max/Step for the range must be numbers.")
                 category_config['min'] = min_val
                 category_config['max'] = max_val
                 category_config['step'] = step_val if step_val else '1'
 
             custom_config[category_name] = category_config
         except ValueError as e:
-            errors.append(f"Ошибка в категории '{category_name}': {e}")
+            errors.append(f"Error in category '{category_name}': {e}")
 
     if not custom_config and not errors:
-        errors.append("Не удалось собрать конфигурацию.")
+        errors.append("Failed to build the configuration.")
 
     return custom_config, errors
 
 
 @main.route('/')
 def index():
-    """Главная страница."""
+    """Main page route."""
     templates = []
     grouped_categories = OrderedDict()
     group_order = [
-        "Кузов и Экстерьер", "Двигатель и Трансмиссия", "Шасси и Подвеска",
-        "Интерьер и Особенности", "Ограничения и Мета", "Прочее"
+        "Body & Exterior", "Engine & Drivetrain", "Chassis & Suspension",
+        "Interior & Features", "Restrictions & Meta", "Other"
     ]
 
     try:
@@ -96,14 +96,14 @@ def index():
         for group_name in group_order:
             grouped_categories[group_name] = []
         for category in all_categories_from_db:
-            group_name = category.display_group if category.display_group else "Прочее"
+            group_name = category.display_group if category.display_group else "Other"
             if group_name not in grouped_categories:
                 grouped_categories[group_name] = []
             grouped_categories[group_name].append(category)
 
     except Exception as e:
         current_app.logger.error(f"Database error fetching data for index: {e}")
-        flash('Ошибка загрузки данных из базы данных.', 'error')
+        flash('Error loading data from the database.', 'error')
 
     return render_template('index.html',
                            templates=templates,
@@ -113,7 +113,7 @@ def index():
 
 @main.route('/generate', methods=['POST'])
 def generate_challenge():
-    """AJAX-эндпоинт для генерации. Возвращает JSON."""
+    """AJAX endpoint for generation. Returns JSON."""
     generation_errors = []
     selected_template_id = request.form.get('template_id')
     form_data = request.form
@@ -137,9 +137,9 @@ def generate_challenge():
             if template and isinstance(template.config, dict):
                 final_config_used = template.config
             else:
-                generation_errors.append(f"Шаблон ID {selected_template_id} не найден или поврежден.")
+                generation_errors.append(f"Template ID {selected_template_id} not found or is corrupted.")
         else:
-            generation_errors.append("Шаблон не выбран.")
+            generation_errors.append("No template selected.")
 
         if final_config_used and not generation_errors:
             generator = ChallengeGenerator(custom_config=final_config_used)
@@ -157,11 +157,12 @@ def generate_challenge():
                         is_custom=(selected_template_id == 'custom')
                     )
     except Exception as e:
-        current_app.logger.error(f"Неожиданная ошибка во время /generate: {e}", exc_info=True)
-        generation_errors.append("Внутренняя ошибка сервера при генерации.")
+        current_app.logger.error(f"Unexpected error during /generate: {e}", exc_info=True)
+        generation_errors.append("Internal server error during generation.")
 
     unique_errors = list(OrderedDict.fromkeys(e for e in generation_errors if e))
     return jsonify(success=False, errors=unique_errors), 400
+
 
 @main.route("/reroll_category", methods=["POST"])
 def reroll_category():
@@ -176,45 +177,38 @@ def reroll_category():
     try:
         category = Category.query.filter_by(name=category_name).first()
         if not category:
-            return jsonify(success=False, error=f"Category \'{category_name}\' not found."), 404
+            return jsonify(success=False, error=f"Category '{category_name}' not found."), 404
 
         generator = ChallengeGenerator()
-        
-        if reroll_type == "all":
-            new_values = generator.reroll_category(category, rules, num_values=1)
-            if new_values and len(new_values) > 0:
-                new_values = [new_values[0]]
-            else:
-                new_values = None
-        else:
-            new_values = generator.reroll_category(category, rules)
+
+        new_values = generator.reroll_category(category, rules)
 
         if new_values is None:
-            error_message = "; ".join(generator.errors) or f"Failed to reroll \'{category_name}\'."
+            error_message = "; ".join(generator.errors) or f"Failed to reroll '{category_name}'."
             return jsonify(success=False, error=error_message), 500
 
         return jsonify(success=True, new_values=new_values)
     except Exception as e:
-        current_app.logger.error(f"Error during reroll for \'{category_name}\': {e}", exc_info=True)
+        current_app.logger.error(f"Error during reroll for '{category_name}': {e}", exc_info=True)
         return jsonify(success=False, error="Internal server error."), 500
 
 
 @main.route('/save_template', methods=['POST'])
 def save_template():
-    """AJAX-эндпоинт для сохранения кастомной конфигурации как шаблона."""
+    """AJAX endpoint for saving a custom configuration as a template."""
     data = request.get_json()
     if not data or not data.get('name') or not data.get('config'):
-        return jsonify(success=False, error="Отсутствует имя или конфигурация шаблона."), 400
+        return jsonify(success=False, error="Template name or configuration is missing."), 400
 
     name = data['name'].strip()
     description = data.get('description', '').strip()
     config = data['config']
 
     if not name:
-        return jsonify(success=False, error="Имя шаблона не может быть пустым."), 400
+        return jsonify(success=False, error="Template name cannot be empty."), 400
 
     if Template.query.filter_by(name=name).first():
-        return jsonify(success=False, error=f"Шаблон с именем '{name}' уже существует."), 409
+        return jsonify(success=False, error=f"A template with the name '{name}' already exists."), 409
 
     try:
         new_template = Template(name=name, description=description)
@@ -225,5 +219,5 @@ def save_template():
         return jsonify(success=True, new_template={'id': new_template.id, 'name': new_template.name})
     except Exception as e:
         db.session.rollback()
-        current_app.logger.error(f"Ошибка сохранения шаблона '{name}': {e}", exc_info=True)
-        return jsonify(success=False, error="Ошибка при сохранении в базу данных."), 500
+        current_app.logger.error(f"Error saving template '{name}': {e}", exc_info=True)
+        return jsonify(success=False, error="Error saving to the database."), 500

@@ -1,3 +1,4 @@
+// AI CODE :) i don't know js
 document.addEventListener('DOMContentLoaded', function() {
     // --- FORM ELEMENTS ---
     const generationForm = document.getElementById('generation-form');
@@ -38,7 +39,6 @@ document.addEventListener('DOMContentLoaded', function() {
         confirmSaveButton.addEventListener('click', handleSaveTemplate);
     }
 
-
     // --- MAIN FUNCTIONS ---
 
     /**
@@ -57,7 +57,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
 
             if (!response.ok) {
-                displayErrors(data.errors || ['Произошла неизвестная ошибка.']);
+                displayErrors(data.errors || ['An unknown error occurred.']);
             } else {
                 generationConfig = data.config;
                 currentResults = data.results;
@@ -65,7 +65,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         } catch (error) {
             console.error('Generation fetch error:', error);
-            displayErrors(['Ошибка сети. Не удалось связаться с сервером.']);
+            displayErrors(['Network error. Could not contact the server.']);
         } finally {
             toggleLoading(false);
         }
@@ -80,11 +80,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const resultsHtml = `
             <div class="challenge-results-container border rounded p-4 bg-white shadow-sm mt-5">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h2 class="mb-0">Результаты Генерации:</h2>
+                    <h2 class="mb-0">Generation Results:</h2>
                     <div>
-                        ${isCustom ? '<button id="save-as-template-btn" class="btn btn-success btn-sm me-2"><i class="bi bi-save"></i> Сохранить как шаблон</button>' : ''}
-                        <button id="toggle-all-descriptions" class="btn btn-info btn-sm me-2"><i class="bi bi-eye-slash"></i> Показать описания</button>
-                        <button id="copy-all-btn" class="btn btn-secondary btn-sm"><i class="bi bi-clipboard"></i> Копировать все</button>
+                        ${isCustom ? '<button id="save-as-template-btn" class="btn btn-success btn-sm me-2"><i class="bi bi-save"></i> Save as Template</button>' : ''}
+                        <button id="toggle-all-descriptions" class="btn btn-info btn-sm me-2"><i class="bi bi-eye-slash"></i> Show Descriptions</button>
+                        <button id="copy-all-btn" class="btn btn-secondary btn-sm"><i class="bi bi-clipboard"></i> Copy All</button>
                     </div>
                 </div>
                 <div class="row g-4" id="results-area"></div>
@@ -118,13 +118,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 const rerollButton = categoryItem.querySelector('.reroll-button');
                 const rerollAllButton = categoryItem.querySelector('.reroll-all-button');
-                
+
                 if (generationConfig[categoryName] && !generationConfig[categoryName].apply_all) {
                     rerollButton.classList.remove('d-none');
                     rerollButton.dataset.categoryName = categoryName;
                     rerollButton.dataset.playerIndex = playerIndex;
                 }
-                
+
                 if (generationConfig[categoryName]) {
                     rerollAllButton.classList.remove('d-none');
                     rerollAllButton.dataset.categoryName = categoryName;
@@ -182,7 +182,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const { categoryName, playerIndex } = button.dataset;
         const categoryRules = generationConfig[categoryName];
         if (!categoryName || !playerIndex || !categoryRules) {
-            alert('Ошибка: Отсутствуют данные для перегенерации.');
+            alert('Error: Data for reroll is missing.');
             return;
         }
 
@@ -199,14 +199,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
 
             if (!response.ok || !data.success) {
-                throw new Error(data.error || 'Ошибка сервера при перегенерации.');
+                throw new Error(data.error || 'Server error during reroll.');
             }
             updateCategoryUI(playerIndex, categoryName, data.new_values);
-            // Update stored results
             currentResults[playerIndex][categoryName] = data.new_values;
         } catch (error) {
             console.error('Reroll failed:', error);
-            alert(`Ошибка: ${error.message}`);
+            alert(`Error: ${error.message}`);
         } finally {
             button.disabled = false;
             button.innerHTML = originalIcon;
@@ -221,7 +220,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const { categoryName } = button.dataset;
         const categoryRules = generationConfig[categoryName];
         if (!categoryName || !categoryRules) {
-            alert('Ошибка: Отсутствуют данные для перегенерации.');
+            alert('Error: Data for reroll is missing.');
             return;
         }
 
@@ -233,30 +232,29 @@ document.addEventListener('DOMContentLoaded', function() {
             const response = await fetch('/reroll_category', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                body: JSON.stringify({ 
-                    category_name: categoryName, 
-                    rules: categoryRules,
-                    reroll_type: 'all'
+                body: JSON.stringify({
+                    category_name: categoryName,
+                    rules: categoryRules
                 })
             });
 
             const data = await response.json();
 
             if (!response.ok || !data.success) {
-                throw new Error(data.error || 'Ошибка сервера при перегенерации.');
+                throw new Error(data.error || 'Server error during reroll.');
             }
 
             if (data.new_values && data.new_values.length > 0) {
-                const singleValue = data.new_values;
-                
+                const newValuesForAll = data.new_values;
+
                 for (let i = 0; i < currentResults.length; i++) {
-                    updateCategoryUI(i, categoryName, singleValue);
-                    currentResults[i][categoryName] = singleValue;
+                    updateCategoryUI(i, categoryName, newValuesForAll);
+                    currentResults[i][categoryName] = newValuesForAll;
                 }
             }
         } catch (error) {
             console.error('Reroll all failed:', error);
-            alert(`Ошибка: ${error.message}`);
+            alert(`Error: ${error.message}`);
         } finally {
             button.disabled = false;
             button.innerHTML = originalIcon;
@@ -270,13 +268,13 @@ document.addEventListener('DOMContentLoaded', function() {
     async function handleSettingsRerollSingle(button) {
         const categoryName = button.dataset.category;
         if (!categoryName || !currentResults.length) {
-            alert('Сначала сгенерируйте челлендж!');
+            alert('Generate a challenge first!');
             return;
         }
 
         const categoryRules = getCurrentCategoryRules(categoryName);
         if (!categoryRules) {
-            alert('Ошибка: Не удалось получить правила категории.');
+            alert('Error: Could not get category rules.');
             return;
         }
 
@@ -293,14 +291,14 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
 
             if (!response.ok || !data.success) {
-                throw new Error(data.error || 'Ошибка сервера при перегенерации.');
+                throw new Error(data.error || 'Server error during reroll.');
             }
+            // By default, update player 1
             updateCategoryUI(0, categoryName, data.new_values);
-            // Update stored results
             currentResults[0][categoryName] = data.new_values;
         } catch (error) {
             console.error('Settings reroll single failed:', error);
-            alert(`Ошибка: ${error.message}`);
+            alert(`Error: ${error.message}`);
         } finally {
             button.disabled = false;
             button.innerHTML = originalIcon;
@@ -314,14 +312,13 @@ document.addEventListener('DOMContentLoaded', function() {
     async function handleSettingsRerollAll(button) {
         const categoryName = button.dataset.category;
         if (!categoryName || !currentResults.length) {
-            alert('Сначала сгенерируйте челлендж!');
+            alert('Generate a challenge first!');
             return;
         }
 
-        // Get current rules from form
         const categoryRules = getCurrentCategoryRules(categoryName);
         if (!categoryRules) {
-            alert('Ошибка: Не удалось получить правила категории.');
+            alert('Error: Could not get category rules.');
             return;
         }
 
@@ -333,30 +330,29 @@ document.addEventListener('DOMContentLoaded', function() {
             const response = await fetch('/reroll_category', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                body: JSON.stringify({ 
-                    category_name: categoryName, 
-                    rules: categoryRules,
-                    reroll_type: 'all'
+                body: JSON.stringify({
+                    category_name: categoryName,
+                    rules: categoryRules
                 })
             });
 
             const data = await response.json();
 
             if (!response.ok || !data.success) {
-                throw new Error(data.error || 'Ошибка сервера при перегенерации.');
+                throw new Error(data.error || 'Server error during reroll.');
             }
 
             if (data.new_values && data.new_values.length > 0) {
-                const singleValue = data.new_values;
-                
+                const newValuesForAll = data.new_values;
+
                 for (let i = 0; i < currentResults.length; i++) {
-                    updateCategoryUI(i, categoryName, singleValue);
-                    currentResults[i][categoryName] = singleValue;
+                    updateCategoryUI(i, categoryName, newValuesForAll);
+                    currentResults[i][categoryName] = newValuesForAll;
                 }
             }
         } catch (error) {
             console.error('Settings reroll all failed:', error);
-            alert(`Ошибка: ${error.message}`);
+            alert(`Error: ${error.message}`);
         } finally {
             button.disabled = false;
             button.innerHTML = originalIcon;
@@ -369,39 +365,36 @@ document.addEventListener('DOMContentLoaded', function() {
      * @returns {Object|null} - The category rules or null if not found.
      */
     function getCurrentCategoryRules(categoryName) {
-        const includeCheckbox = document.querySelector(`input[name="include_category"][value="${categoryName}"]`);
-        if (!includeCheckbox || !includeCheckbox.checked) {
-            return null;
-        }
+        const formElement = document.querySelector(`.custom-category-block input[value="${categoryName}"]`).closest('.custom-category-block');
 
-        const ruleSelect = document.querySelector(`select[name="rule_${categoryName}"]`);
-        const countInput = document.querySelector(`input[name="count_${categoryName}"]`);
-        const applyAllCheckbox = document.querySelector(`input[name="apply_all_${categoryName}"]`);
-
+        const ruleSelect = formElement.querySelector(`select[name="rule_${categoryName}"]`);
         if (!ruleSelect) return null;
+
+        const countInput = formElement.querySelector(`input[name="count_${categoryName}"]`);
+        const applyAllCheckbox = formElement.querySelector(`input[name="apply_all_${categoryName}"]`);
 
         const rules = {
             rule: ruleSelect.value,
-            count: countInput ? parseInt(countInput.value) || 1 : 1,
+            count: countInput ? parseInt(countInput.value, 10) || 1 : 1,
             apply_all: applyAllCheckbox ? applyAllCheckbox.checked : true
         };
 
         if (rules.rule === 'fixed') {
-            const fixedInput = document.querySelector(`input[name="fixed_value_${categoryName}"]`) ||
-                             document.querySelector(`select[name="fixed_value_${categoryName}"]`);
+            const fixedInput = formElement.querySelector(`input[name^="fixed_value_"]:not([style*="display: none"])`) ||
+                               formElement.querySelector(`select[name^="fixed_value_"]:not([style*="display: none"])`);
             if (fixedInput) {
-                rules.fixed_value = fixedInput.value;
+                rules.value = fixedInput.value;
             }
         } else if (rules.rule === 'random_from_list') {
-            const allowedInputs = document.querySelectorAll(`input[name="allowed_values_${categoryName}"]:checked`);
+            const allowedInputs = formElement.querySelectorAll(`input[name="allowed_values_${categoryName}"]:checked`);
             rules.allowed_values = Array.from(allowedInputs).map(input => input.value);
         } else if (rules.rule === 'range') {
-            const minInput = document.querySelector(`input[name="range_min_${categoryName}"]`);
-            const maxInput = document.querySelector(`input[name="range_max_${categoryName}"]`);
-            const stepInput = document.querySelector(`input[name="range_step_${categoryName}"]`);
-            rules.range_min = minInput ? parseInt(minInput.value) : 0;
-            rules.range_max = maxInput ? parseInt(maxInput.value) : 100;
-            rules.range_step = stepInput ? parseInt(stepInput.value) : 1;
+            const minInput = formElement.querySelector(`input[name="range_min_${categoryName}"]`);
+            const maxInput = formElement.querySelector(`input[name="range_max_${categoryName}"]`);
+            const stepInput = formElement.querySelector(`input[name="range_step_${categoryName}"]`);
+            if (minInput) rules.min = minInput.value;
+            if (maxInput) rules.max = maxInput.value;
+            if (stepInput) rules.step = stepInput.value;
         }
 
         return rules;
@@ -420,7 +413,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (!name) {
             nameInput.classList.add('is-invalid');
-            nameInput.nextElementSibling.textContent = 'Имя шаблона не может быть пустым.';
+            nameInput.nextElementSibling.textContent = 'Template name cannot be empty.';
             return;
         }
 
@@ -434,7 +427,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (!response.ok || !data.success) {
                 nameInput.classList.add('is-invalid');
-                nameInput.nextElementSibling.textContent = data.error || 'Ошибка сервера.';
+                nameInput.nextElementSibling.textContent = data.error || 'Server error.';
                 throw new Error(data.error);
             }
 
@@ -443,6 +436,7 @@ document.addEventListener('DOMContentLoaded', function() {
             templateSelect.dispatchEvent(new Event('change'));
 
             saveTemplateModal.hide();
+            saveTemplateForm.reset();
         } catch (error) {
             console.error('Failed to save template:', error);
         }
@@ -457,23 +451,24 @@ document.addEventListener('DOMContentLoaded', function() {
 
         generateButton.disabled = isLoading;
         spinner.classList.toggle('d-none', !isLoading);
-        buttonText.textContent = isLoading ? 'Генерация...' : 'Сгенерировать Челлендж!';
+        buttonText.textContent = isLoading ? 'Generating...' : 'Generate Challenge!';
         buttonIcon.classList.toggle('d-none', isLoading);
     }
 
     function displayErrors(errors) {
         let errorHtml = '<div class="alert alert-danger alert-dismissible fade show" role="alert">';
-        errorHtml += '<strong>При генерации возникли проблемы:</strong><ul class="mb-0">';
+        errorHtml += '<strong>Problems occurred during generation:</strong><ul class="mb-0">';
         errors.forEach(err => { errorHtml += `<li>${err}</li>`; });
         errorHtml += '</ul><button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>';
 
-        generationForm.insertAdjacentHTML('afterend', errorHtml);
+        // Insert after the form, not inside it
+        resultsPlaceholder.insertAdjacentHTML('beforebegin', errorHtml);
     }
 
     function clearResultsAndErrors() {
         resultsPlaceholder.innerHTML = '';
-        const existingAlert = generationForm.nextElementSibling;
-        if (existingAlert && existingAlert.classList.contains('alert')) {
+        const existingAlert = document.querySelector('.alert-danger');
+        if (existingAlert) {
             existingAlert.remove();
         }
     }
@@ -506,8 +501,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const descriptions = resultsPlaceholder.querySelectorAll('.toggleable-description');
 
         button.innerHTML = isVisible
-            ? '<i class="bi bi-eye"></i> Скрыть описания'
-            : '<i class="bi bi-eye-slash"></i> Показать описания';
+            ? '<i class="bi bi-eye"></i> Hide Descriptions'
+            : '<i class="bi bi-eye-slash"></i> Show Descriptions';
 
         descriptions.forEach(span => span.style.display = isVisible ? 'inline' : 'none');
     }
@@ -516,9 +511,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const resultsContainer = document.getElementById(containerId);
         if (!resultsContainer) return;
 
-        let textToCopy = "Сгенерированный Челлендж:\n";
+        let textToCopy = "Generated Challenge:\n";
         resultsContainer.querySelectorAll('.player-card').forEach((card, index) => {
-            textToCopy += `\n--- Игрок ${index + 1} ---\n`;
+            textToCopy += `\n--- Player ${index + 1} ---\n`;
             card.querySelectorAll('.result-category').forEach(catBlock => {
                 const categoryTitle = catBlock.querySelector('.category-name').innerText.trim();
                 textToCopy += `${categoryTitle}\n`;
@@ -534,10 +529,10 @@ document.addEventListener('DOMContentLoaded', function() {
         navigator.clipboard.writeText(textToCopy.trim()).then(() => {
             const copyButton = document.getElementById('copy-all-btn');
             const originalText = copyButton.innerHTML;
-            copyButton.innerHTML = '<i class="bi bi-check-lg"></i> Скопировано!';
+            copyButton.innerHTML = '<i class="bi bi-check-lg"></i> Copied!';
             setTimeout(() => { copyButton.innerHTML = originalText; }, 2000);
         }, (err) => {
-            alert('Не удалось скопировать.');
+            alert('Failed to copy.');
         });
     }
 

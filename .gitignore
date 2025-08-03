@@ -1,2 +1,4 @@
 /.venv/
 /.idea/
+/migrations/
+/data/challenges.db

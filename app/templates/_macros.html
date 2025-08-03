@@ -11,7 +11,7 @@
         <div class="form-check form-check-inline ms-3">
              <input class="form-check-input" type="checkbox" id="apply_all_{{ category.id }}" name="apply_all_{{ category.name }}" value="true" checked>
              <label class="form-check-label small text-muted" for="apply_all_{{ category.id }}">
-                 Применить для всех игроков
+                 Apply to all players
              </label>
         </div>
     </div>
@@ -19,29 +19,29 @@
     <div class="custom-rules ms-4" style="display: none;">
         <div class="row align-items-center mb-2 gx-2">
             <div class="col-auto">
-                <label for="rule_{{ category.id }}" class="col-form-label col-form-label-sm">Правило:</label>
+                <label for="rule_{{ category.id }}" class="col-form-label col-form-label-sm">Rule:</label>
             </div>
             <div class="col-auto">
                 <select name="rule_{{ category.name }}" id="rule_{{ category.id }}" class="form-select form-select-sm rule-select">
-                    <option value="random_from_category" selected>Случайно из всех</option>
-                    <option value="random_from_list">Случайно из списка</option>
-                    <option value="range">Диапазон (числа)</option>
-                    <option value="fixed">Фиксированное значение</option>
+                    <option value="random_from_category" selected>Random from all</option>
+                    <option value="random_from_list">Random from list</option>
+                    <option value="range">Range (numbers)</option>
+                    <option value="fixed">Fixed value</option>
                 </select>
             </div>
             <div class="col-auto rule-count-field">
-                <label for="count_{{ category.id }}" class="col-form-label col-form-label-sm ms-2">Кол-во:</label>
+                <label for="count_{{ category.id }}" class="col-form-label col-form-label-sm ms-2">Count:</label>
             </div>
              <div class="col-auto rule-count-field">
                 <input type="number" name="count_{{ category.name }}" id="count_{{ category.id }}" value="1" min="1" max="10" class="form-control form-control-sm" style="width: 70px;">
             </div>
             <div class="col-auto ms-auto">
-                <div class="btn-group" role="group" aria-label="Кнопки рерола">
-                    <button type="button" class="btn btn-outline-primary btn-sm reroll-single-btn" data-category="{{ category.name }}" title="Перегенерировать для одного игрока">
-                        <i class="bi bi-arrow-repeat"></i> Один
+                <div class="btn-group" role="group" aria-label="Reroll buttons">
+                    <button type="button" class="btn btn-outline-primary btn-sm reroll-single-btn" data-category="{{ category.name }}" title="Reroll for one player">
+                        <i class="bi bi-arrow-repeat"></i> One
                     </button>
-                    <button type="button" class="btn btn-outline-success btn-sm reroll-all-btn" data-category="{{ category.name }}" title="Перегенерировать для всех игроков">
-                        <i class="bi bi-arrow-repeat"></i> Все
+                    <button type="button" class="btn btn-outline-success btn-sm reroll-all-btn" data-category="{{ category.name }}" title="Reroll for all players">
+                        <i class="bi bi-arrow-repeat"></i> All
                     </button>
                 </div>
             </div>
@@ -50,11 +50,11 @@
         <div class="rule-options rule-options-{{ category.id }} mt-2">
             <div class="option-fixed border-top pt-2" style="display: none;">
                 <div class="row align-items-center gx-2">
-                    <div class="col-auto"><label for="fixed_value_{{ category.id }}" class="col-form-label col-form-label-sm">Значение:</label></div>
+                    <div class="col-auto"><label for="fixed_value_{{ category.id }}" class="col-form-label col-form-label-sm">Value:</label></div>
                     <div class="col">
-                        <input type="text" name="fixed_value_{{ category.name }}" id="fixed_value_{{ category.id }}" placeholder="Введите значение" class="form-control form-control-sm fixed-input-text">
+                        <input type="text" name="fixed_value_{{ category.name }}" id="fixed_value_{{ category.id }}" placeholder="Enter value" class="form-control form-control-sm fixed-input-text">
                         <select name="fixed_value_select_{{ category.name }}" class="form-select form-select-sm fixed-input-select" style="display: none;">
-                            <option value="" selected>-- Выберите --</option>
+                            <option value="" selected>-- Select --</option>
                             {% for val in category.values | sort(attribute='value_core') %}
                             <option value="{{ val.value_core }}">{{ val.value_core }}</option>
                             {% endfor %}
@@ -63,23 +63,23 @@
                 </div>
             </div>
             <div class="option-random_from_list border-top pt-2" style="display: none;">
-                <label class="form-label form-label-sm mb-1">Выберите значения:</label>
+                <label class="form-label form-label-sm mb-1">Select values:</label>
                 <div class="allowed-values-list">
                 {% for val in category.values | sort(attribute='value_core') %}
                     <div class="form-check form-check-inline">
                         <input class="form-check-input" type="checkbox" id="list_val_{{ category.id }}_{{ val.id }}" name="allowed_values_{{ category.name }}" value="{{ val.value_core }}">
                         <label class="form-check-label small" for="list_val_{{ category.id }}_{{ val.id }}">{{ val.value_core }}</label>
                     </div>
-                {% else %}<span class="text-muted fst-italic"><small>Нет доступных значений.</small></span>{% endfor %}
+                {% else %}<span class="text-muted fst-italic"><small>No available values.</small></span>{% endfor %}
                 </div>
             </div>
             <div class="option-range border-top pt-2" style="display: none;">
                 <div class="row g-2 align-items-center">
-                    <div class="col-auto"><label for="range_min_{{ category.id }}" class="col-form-label col-form-label-sm">Мин:</label></div>
+                    <div class="col-auto"><label for="range_min_{{ category.id }}" class="col-form-label col-form-label-sm">Min:</label></div>
                     <div class="col-auto"><input type="number" name="range_min_{{ category.name }}" id="range_min_{{ category.id }}" class="form-control form-control-sm" style="width: 80px;"></div>
-                    <div class="col-auto"><label for="range_max_{{ category.id }}" class="col-form-label col-form-label-sm">Макс:</label></div>
+                    <div class="col-auto"><label for="range_max_{{ category.id }}" class="col-form-label col-form-label-sm">Max:</label></div>
                     <div class="col-auto"><input type="number" name="range_max_{{ category.name }}" id="range_max_{{ category.id }}" class="form-control form-control-sm" style="width: 80px;"></div>
-                    <div class="col-auto"><label for="range_step_{{ category.id }}" class="col-form-label col-form-label-sm">Шаг:</label></div>
+                    <div class="col-auto"><label for="range_step_{{ category.id }}" class="col-form-label col-form-label-sm">Step:</label></div>
                     <div class="col-auto"><input type="number" name="range_step_{{ category.name }}" id="range_step_{{ category.id }}" value="1" min="1" class="form-control form-control-sm" style="width: 70px;"></div>
                 </div>
             </div>

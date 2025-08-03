@@ -8,7 +8,6 @@ class Category(db.Model):
     description = db.Column(db.String(200))
     display_group = db.Column(db.String(100), nullable=True, index=True)
 
-
     def __repr__(self):
         return f'<Category {self.name} (Group: {self.display_group})>'
 

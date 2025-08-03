@@ -7,24 +7,24 @@ if not os.path.exists(datadir):
     os.makedirs(datadir)
 
 class Config:
-    """Базовый класс конфигурации."""
+    """Base configuration class."""
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'you-will-never-guess'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     JSON_AS_ASCII = False
 
 class DevelopmentConfig(Config):
-    """Конфигурация для разработки."""
+    """Development configuration."""
     DEBUG = True
     SQLALCHEMY_DATABASE_URI = os.environ.get('DEV_DATABASE_URL') or \
         'sqlite:///' + os.path.join(datadir, 'challenges.db')
 
 class ProductionConfig(Config):
-    """Конфигурация для продакшена."""
+    """Production configuration."""
     DEBUG = False
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
         'sqlite:///' + os.path.join(datadir, 'challenges_prod.db')
 
-# Словарь для выбора конфигурации по имени
+# Dictionary for selecting configuration by name
 config = {
     'development': DevelopmentConfig,
     'production': ProductionConfig,

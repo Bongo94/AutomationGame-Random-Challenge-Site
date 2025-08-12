@@ -1,0 +1,22 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: automation_challenge_web
+    restart: always
+    environment:
+      SECRET_KEY: ${FLASK_SECRET_KEY:-YOU_NEED_TO_CHANGE_THIS_PASSWORD}
+      FLASK_CONFIG: production
+    volumes:
+      - flask_data:/app/data
+    networks:
+      - proxy-net
+
+volumes:
+  flask_data:
+    driver: local
+
+networks:
+  proxy-net:
+    external: true

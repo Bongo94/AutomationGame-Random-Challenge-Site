@@ -5,3 +5,4 @@ python-dotenv==1.1.1
 click~=8.1.7
 alembic~=1.15.2
 SQLAlchemy~=2.0.23
+gunicorn~=23.0.0

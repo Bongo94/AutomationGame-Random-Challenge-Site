@@ -332,3 +332,10 @@ footer {
 .modal-footer {
     border-top-color: var(--automation-border-color);
 }
+
+.navbar-logo {
+    height: 32px;
+    width: auto;
+    vertical-align: middle;
+    border-radius: 25%;
+}

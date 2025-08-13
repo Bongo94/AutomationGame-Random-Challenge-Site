@@ -16,7 +16,7 @@
     <meta property="og:description" content="{% block og_description %}{{ self.meta_description() }}{% endblock %}">
     <meta property="og:type" content="website">
     <meta property="og:url" content="{% block og_url %}https://automation.bongo94.ru/{% endblock %}">
-    <meta property="og:image" content="{% block og_image %}{{ url_for('static', filename='images/site_preview.png', _external=True) }}{% endblock %}">
+    <meta property="og:image" content="{% block og_image %}{{ url_for('static', filename='images/site_preview.png', _external=True) }}{% endblock %}"> {# Use site_preview.png for larger social previews #}
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:locale" content="en_US">
@@ -29,7 +29,7 @@
     <meta name="twitter:description" content="{% block twitter_description %}{{ self.og_description() }}{% endblock %}">
     <meta name="twitter:image" content="{% block twitter_image %}{{ self.og_image() }}{% endblock %}">
 
-    {# Favicon #}
+    {# Favicon) #}
     <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
     <link rel="shortcut icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
 
@@ -42,7 +42,10 @@
 <body>
     <nav class="navbar navbar-expand-lg bg-body-tertiary mb-4">
       <div class="container">
-        <a class="navbar-brand" href="{{ url_for('main.index') }}">Automation Challenge Gen <small class="text-muted">by Bongo94</small></a>
+        <a class="navbar-brand" href="{{ url_for('main.index') }}">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Automation Challenge Generator Logo" class="navbar-logo me-2">
+            Automation Challenge Gen <small class="text-muted">by Bongo94</small>
+        </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
           <span class="navbar-toggler-icon"></span>
         </button>

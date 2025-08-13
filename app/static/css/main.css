@@ -155,8 +155,8 @@ h1, h2, h3, h4, h5, h6 {
     line-height: 1;
     margin-left: 0.5rem;
     background-color: transparent;
-    border-color: var(--automation-red-primary);
-    color: var(--automation-red-primary);
+    border-color: gray;
+    color: gray;
 }
 .reroll-button:hover, .reroll-all-button:hover {
     background-color: var(--automation-red-hover);

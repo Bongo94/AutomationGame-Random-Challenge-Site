@@ -78,7 +78,7 @@ document.addEventListener('DOMContentLoaded', function() {
      */
     function renderResults(resultsData, isCustom) {
         const resultsHtml = `
-            <div class="challenge-results-container border rounded p-4 bg-white shadow-sm mt-5">
+            <div class="challenge-results-container border rounded p-4 shadow-sm mt-5">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h2 class="mb-0">Generation Results:</h2>
                     <div>
@@ -408,6 +408,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const descInput = document.getElementById('template-description');
         const name = nameInput.value.trim();
         const description = descInput.value.trim();
+
+        window.location.href = "/?template_saved=true&template_name=" + encodeURIComponent(data.new_template.name);
 
         nameInput.classList.remove('is-invalid');
 

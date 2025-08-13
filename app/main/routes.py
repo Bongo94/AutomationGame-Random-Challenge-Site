@@ -193,6 +193,12 @@ def reroll_category():
         return jsonify(success=False, error="Internal server error."), 500
 
 
+@main.route('/about')
+def about():
+    """About page route."""
+    return render_template('about.html', now=datetime.utcnow)
+
+
 @main.route('/save_template', methods=['POST'])
 def save_template():
     """AJAX endpoint for saving a custom configuration as a template."""
